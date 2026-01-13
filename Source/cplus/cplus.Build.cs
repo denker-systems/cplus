@@ -19,13 +19,36 @@ public class cplus : ModuleRules
 			"GameplayStateTreeModule",
 			"GameplayTags",
 			"UMG",
-			"Slate"
+			"Slate",
+			"LevelSequence"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(new string[] {
+				"UnrealEd",
+				"Blutility",
+				"UMGEditor",
+				"AssetRegistry"
+			});
+		}
+
 		PublicIncludePaths.AddRange(new string[] {
 			"cplus",
+			"cplus/Core",
+			"cplus/QuestSystem",
+			"cplus/QuestSystem/Data",
+			"cplus/QuestSystem/Runtime",
+			"cplus/QuestSystem/Tasks",
+			"cplus/QuestSystem/Interfaces",
+			"cplus/QuestSystem/Components",
+			"cplus/QuestSystem/UI",
+			"cplus/QuestSystem/Actors",
+			"cplus/InventorySystem",
+			"cplus/InteractionSystem",
+			"cplus/UI",
 			"cplus/Variant_Horror",
 			"cplus/Variant_Horror/UI",
 			"cplus/Variant_Shooter",

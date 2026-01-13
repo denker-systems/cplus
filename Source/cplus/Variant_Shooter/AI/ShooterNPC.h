@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "cplusCharacter.h"
+#include "HostileAICharacter.h"
 #include "ShooterWeaponHolder.h"
 #include "ShooterNPC.generated.h"
 
@@ -17,15 +17,9 @@ class AShooterWeapon;
  *  Holds and manages a weapon
  */
 UCLASS(abstract)
-class CPLUS_API AShooterNPC : public AcplusCharacter, public IShooterWeaponHolder
+class CPLUS_API AShooterNPC : public AHostileAICharacter, public IShooterWeaponHolder
 {
 	GENERATED_BODY()
-
-public:
-
-	/** Current HP for this character. It dies if it reaches zero through damage */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage")
-	float CurrentHP = 100.0f;
 
 protected:
 
@@ -81,9 +75,6 @@ protected:
 
 	/** If true, this character is currently shooting its weapon */
 	bool bIsShooting = false;
-
-	/** If true, this character has already died */
-	bool bIsDead = false;
 
 	/** Deferred destruction on death timer */
 	FTimerHandle DeathTimer;
@@ -142,7 +133,7 @@ public:
 protected:
 
 	/** Called when HP is depleted and the character should die */
-	void Die();
+	virtual void Die(AActor* Killer) override;
 
 	/** Called after death to destroy the actor */
 	void DeferredDestruction();

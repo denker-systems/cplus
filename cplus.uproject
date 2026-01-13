@@ -10,7 +10,9 @@
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
 				"Engine",
-				"CoreUObject"
+				"CoreUObject",
+				"UMG",
+				"Blutility"
 			]
 		}
 	],
@@ -25,6 +27,10 @@
 		},
 		{
 			"Name": "GameplayStateTree",
+			"Enabled": true
+		},
+		{
+			"Name": "DataRegistry",
 			"Enabled": true
 		}
 	]

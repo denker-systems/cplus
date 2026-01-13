@@ -47,7 +47,8 @@ float AShooterNPC::TakeDamage(float Damage, struct FDamageEvent const& DamageEve
 	// Have we depleted HP?
 	if (CurrentHP <= 0.0f)
 	{
-		Die();
+		CurrentHP = 0.0f;
+		Die(DamageCauser);
 	}
 
 	return Damage;
@@ -60,8 +61,7 @@ void AShooterNPC::AttachWeaponMeshes(AShooterWeapon* WeaponToAttach)
 	// attach the weapon actor
 	WeaponToAttach->AttachToActor(this, AttachmentRule);
 
-	// attach the weapon meshes
-	WeaponToAttach->GetFirstPersonMesh()->AttachToComponent(GetFirstPersonMesh(), AttachmentRule, FirstPersonWeaponSocket);
+	// AI only uses third person mesh
 	WeaponToAttach->GetThirdPersonMesh()->AttachToComponent(GetMesh(), AttachmentRule, ThirdPersonWeaponSocket);
 }
 
@@ -82,8 +82,8 @@ void AShooterNPC::UpdateWeaponHUD(int32 CurrentAmmo, int32 MagazineSize)
 
 FVector AShooterNPC::GetWeaponTargetLocation()
 {
-	// start aiming from the camera location
-	const FVector AimSource = GetFirstPersonCameraComponent()->GetComponentLocation();
+	// AI uses actor eye location for aiming
+	const FVector AimSource = GetActorLocation() + FVector(0, 0, BaseEyeHeight);
 
 	FVector AimDir, AimTarget = FVector::ZeroVector;
 
@@ -103,8 +103,8 @@ FVector AShooterNPC::GetWeaponTargetLocation()
 		
 	} else {
 
-		// no aim target, so just use the camera facing
-		AimDir = UKismetMathLibrary::RandomUnitVectorInConeInDegrees(GetFirstPersonCameraComponent()->GetForwardVector(), AimVarianceHalfAngle);
+		// no aim target, so just use the actor forward
+		AimDir = UKismetMathLibrary::RandomUnitVectorInConeInDegrees(GetActorForwardVector(), AimVarianceHalfAngle);
 
 	}
 
@@ -148,16 +148,10 @@ void AShooterNPC::OnSemiWeaponRefire()
 	}
 }
 
-void AShooterNPC::Die()
+void AShooterNPC::Die(AActor* Killer)
 {
-	// ignore if already dead
-	if (bIsDead)
-	{
-		return;
-	}
-
-	// raise the dead flag
-	bIsDead = true;
+	// Call parent implementation (sets bIsDead, broadcasts OnAIDeath)
+	Super::Die(Killer);
 
 	// grant the death tag to the character
 	Tags.Add(DeathTag);

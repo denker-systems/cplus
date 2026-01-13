@@ -8,22 +8,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Windsurf rules and workflows for Unreal Engine 5.7
-- Documentation structure for development tracking
-- Session report templates
-- Monthly DEVLOG structure
-- English documentation standards
+- GameDataSubsystem for centralized DataAsset management with UAssetManager
+- Complete character hierarchy: BaseCharacter → BasePlayerCharacter/BaseAICharacter → specialized classes
+- Quest dialog system (FQuestDialogData with speaker, text, audio, portrait)
+- Quest cutscene system (FQuestCutsceneData with LevelSequence integration)
+- Quest mission/stage system (FQuestMissionData, FQuestStageData)
+- Quest failure conditions (FQuestFailureCondition with time limits, NPC death, etc.)
+- Quest actors: AQuestGiverNPC, AQuestMarker, ADialogActor, AQuestTriggerVolume
+- BasePlayerCharacter with QuestTracker, Inventory, Interaction components
+- BaseAICharacter with Health, Team system, QuestTarget component
+- AFriendlyAICharacter with QuestGiver component and IQuestInteractable
+- AHostileAICharacter with IQuestKillable interface
+- Organized Source folder structure (Core, QuestSystem, InventorySystem, InteractionSystem)
 
 ### Changed
-- Translated all documentation from Swedish to English
-- Simplified file naming (removed UNREAL_ prefix)
-- Updated all code comments to English
+- QuestDefinition expanded with stages, missions, dialogs, cutscenes, audio, failure conditions
+- cplusCharacter refactored to inherit from BasePlayerCharacter
+- ShooterNPC refactored to inherit from HostileAICharacter
+- All quest files organized into Data, Runtime, Components, Tasks, Interfaces, UI, Actors subfolders
+- cplus.Build.cs updated with editor modules (UnrealEd, Blutility, UMGEditor, AssetRegistry) and LevelSequence
+- Updated include paths for new folder structure
 
 ### Fixed
-- None
+- FInventoryItem::InstanceID initialization error with UPROPERTY Meta tag
+- GameplayTags not appearing (added to DefaultGameplayTags.ini with ImportTagsFromConfig)
+- ShooterNPC Die() signature to match BaseAICharacter (added Killer parameter)
+- ShooterNPC aiming logic for AI (uses actor eye location instead of FirstPersonCamera)
 
 ### Removed
-- None
+- MyTestActor, MyTestClass (test files)
+- Data Registry approach (reverted to DataAssets + AssetManager)
+- QuestRegistryRow, QuestRegistrySubsystem, QuestEditorWidget (abandoned Data Registry implementation)
 
 ---
 
