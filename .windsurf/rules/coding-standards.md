@@ -1,3 +1,6 @@
+---
+trigger: always_on
+---
 # Unreal Engine C++ Coding Standards
 
 > **Destination:** `.windsurf/rules/coding-standards.md`

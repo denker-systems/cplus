@@ -1,3 +1,6 @@
+---
+trigger: always_on
+---
 # Windsurf Setup Instructions
 
 > **Destination:** `.windsurf/`

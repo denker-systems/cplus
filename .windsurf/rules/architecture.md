@@ -1,3 +1,6 @@
+---
+trigger: always_on
+---
 # Unreal Engine Architecture
 
 > **Destination:** `.windsurf/rules/architecture.md`
