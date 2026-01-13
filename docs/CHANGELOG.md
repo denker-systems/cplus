@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **HealthComponent** - Component-based health management for players and AI
+- **WeaponComponent** - Component-based weapon inventory and switching system
+- **BaseGameMode** - Clean game mode using BasePlayerCharacter and BasePlayerController
+- **BasePlayerController** - Controller with Enhanced Input Mapping Context support (IMC_Default + IMC_MouseLook)
+- Debug logging system for GameMode, PlayerController, and PlayerCharacter initialization
 - GameDataSubsystem for centralized DataAsset management with UAssetManager
 - Complete character hierarchy: BaseCharacter → BasePlayerCharacter/BaseAICharacter → specialized classes
 - Quest dialog system (FQuestDialogData with speaker, text, audio, portrait)
@@ -22,14 +27,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Organized Source folder structure (Core, QuestSystem, InventorySystem, InteractionSystem)
 
 ### Changed
+- **BasePlayerCharacter** - Consolidated ALL player features: FPS components, shooter features, horror features (sprint/stamina), Enhanced Input
+- **BaseAICharacter** - Consolidated ALL AI features: shooter AI (aiming, shooting, ragdoll), quest interfaces, weapon handling
+- **FriendlyAICharacter** - Simplified to only set Team = Friendly (all functionality in base)
+- **HostileAICharacter** - Simplified to only set Team = Hostile (all functionality in base)
+- **AcplusCharacter** - Simplified to legacy wrapper (all functionality moved to BasePlayerCharacter)
+- **AShooterCharacter** - Simplified, removed duplicate members now in BasePlayerCharacter
+- **AHorrorCharacter** - Simplified, removed duplicate members now in BasePlayerCharacter
+- **AShooterNPC** - Simplified, removed duplicate members now in BaseAICharacter
 - QuestDefinition expanded with stages, missions, dialogs, cutscenes, audio, failure conditions
-- cplusCharacter refactored to inherit from BasePlayerCharacter
-- ShooterNPC refactored to inherit from HostileAICharacter
 - All quest files organized into Data, Runtime, Components, Tasks, Interfaces, UI, Actors subfolders
 - cplus.Build.cs updated with editor modules (UnrealEd, Blutility, UMGEditor, AssetRegistry) and LevelSequence
 - Updated include paths for new folder structure
 
 ### Fixed
+- **Character hierarchy shadowing errors** - Removed duplicate UPROPERTY members in child classes
+- **Input system** - Configured both IMC_Default (keyboard/gamepad) and IMC_MouseLook (mouse) for proper input handling
+- **Camera attachment** - Fixed FirstPersonCamera attachment to FirstPersonMesh head socket
+- **Component initialization** - All components now properly created in base classes
 - FInventoryItem::InstanceID initialization error with UPROPERTY Meta tag
 - GameplayTags not appearing (added to DefaultGameplayTags.ini with ImportTagsFromConfig)
 - ShooterNPC Die() signature to match BaseAICharacter (added Killer parameter)

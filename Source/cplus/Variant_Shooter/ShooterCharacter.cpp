@@ -3,6 +3,7 @@
 
 #include "ShooterCharacter.h"
 #include "ShooterWeapon.h"
+#include "HealthComponent.h"
 #include "EnhancedInputComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/PawnNoiseEmitterComponent.h"
@@ -15,22 +16,18 @@
 
 AShooterCharacter::AShooterCharacter()
 {
-	// create the noise emitter component
-	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("Pawn Noise Emitter"));
-
-	// configure movement
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 600.0f, 0.0f);
+	// All initialization now in BasePlayerCharacter
 }
 
 void AShooterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// reset HP to max
-	CurrentHP = MaxHP;
-
-	// update the HUD
-	OnDamaged.Broadcast(1.0f);
+	// Update the HUD with initial health
+	if (HealthComponent)
+	{
+		OnDamaged.Broadcast(HealthComponent->GetHealthPercent());
+	}
 }
 
 void AShooterCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -61,25 +58,16 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 float AShooterCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	// ignore if already dead
-	if (CurrentHP <= 0.0f)
+	// Call parent implementation (routes to HealthComponent)
+	float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	// Update the HUD
+	if (HealthComponent)
 	{
-		return 0.0f;
+		OnDamaged.Broadcast(HealthComponent->GetHealthPercent());
 	}
 
-	// Reduce HP
-	CurrentHP -= Damage;
-
-	// Have we depleted HP?
-	if (CurrentHP <= 0.0f)
-	{
-		Die();
-	}
-
-	// update the HUD
-	OnDamaged.Broadcast(FMath::Max(0.0f, CurrentHP / MaxHP));
-
-	return Damage;
+	return ActualDamage;
 }
 
 void AShooterCharacter::DoAim(float Yaw, float Pitch)
@@ -118,53 +106,7 @@ void AShooterCharacter::DoJumpEnd()
 	}
 }
 
-void AShooterCharacter::DoStartFiring()
-{
-	// fire the current weapon
-	if (CurrentWeapon && !IsDead())
-	{
-		CurrentWeapon->StartFiring();
-	}
-}
-
-void AShooterCharacter::DoStopFiring()
-{
-	// stop firing the current weapon
-	if (CurrentWeapon && !IsDead())
-	{
-		CurrentWeapon->StopFiring();
-	}
-}
-
-void AShooterCharacter::DoSwitchWeapon()
-{
-	// ensure we have at least two weapons two switch between
-	if (OwnedWeapons.Num() > 1 && !IsDead())
-	{
-		// deactivate the old weapon
-		CurrentWeapon->DeactivateWeapon();
-
-		// find the index of the current weapon in the owned list
-		int32 WeaponIndex = OwnedWeapons.Find(CurrentWeapon);
-
-		// is this the last weapon?
-		if (WeaponIndex == OwnedWeapons.Num() - 1)
-		{
-			// loop back to the beginning of the array
-			WeaponIndex = 0;
-		}
-		else {
-			// select the next weapon index
-			++WeaponIndex;
-		}
-
-		// set the new weapon as current
-		CurrentWeapon = OwnedWeapons[WeaponIndex];
-
-		// activate the new weapon
-		CurrentWeapon->ActivateWeapon();
-	}
-}
+// DoStartFiring, DoStopFiring, DoSwitchWeapon now in BasePlayerCharacter
 
 void AShooterCharacter::AttachWeaponMeshes(AShooterWeapon* Weapon)
 {
@@ -323,6 +265,6 @@ void AShooterCharacter::OnRespawn()
 
 bool AShooterCharacter::IsDead() const
 {
-	// the character is dead if their current HP drops to zero
-	return CurrentHP <= 0.0f;
+	// Use parent implementation (checks HealthComponent)
+	return Super::IsDead();
 }

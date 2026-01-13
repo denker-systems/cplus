@@ -21,50 +21,15 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedDelegate, float, LifePercent
  *  Manages health and death
  */
 UCLASS(abstract)
-class CPLUS_API AShooterCharacter : public AcplusCharacter, public IShooterWeaponHolder
+class CPLUS_API AShooterCharacter : public AcplusCharacter
 {
 	GENERATED_BODY()
 	
-	/** AI Noise emitter component */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
-	UPawnNoiseEmitterComponent* PawnNoiseEmitter;
+	// PawnNoiseEmitter, FireAction, SwitchWeaponAction, weapon sockets, MaxAimDistance now in BasePlayerCharacter
 
 protected:
 
-	/** Fire weapon input action */
-	UPROPERTY(EditAnywhere, Category ="Input")
-	UInputAction* FireAction;
-
-	/** Switch weapon input action */
-	UPROPERTY(EditAnywhere, Category ="Input")
-	UInputAction* SwitchWeaponAction;
-
-	/** Name of the first person mesh weapon socket */
-	UPROPERTY(EditAnywhere, Category ="Weapons")
-	FName FirstPersonWeaponSocket = FName("HandGrip_R");
-
-	/** Name of the third person mesh weapon socket */
-	UPROPERTY(EditAnywhere, Category ="Weapons")
-	FName ThirdPersonWeaponSocket = FName("HandGrip_R");
-
-	/** Max distance to use for aim traces */
-	UPROPERTY(EditAnywhere, Category ="Aim", meta = (ClampMin = 0, ClampMax = 100000, Units = "cm"))
-	float MaxAimDistance = 10000.0f;
-
-	/** Max HP this character can have */
-	UPROPERTY(EditAnywhere, Category="Health")
-	float MaxHP = 500.0f;
-
-	/** Current HP remaining to this character */
-	float CurrentHP = 0.0f;
-
-	/** Team ID for this character*/
-	UPROPERTY(EditAnywhere, Category="Team")
-	uint8 TeamByte = 0;
-
-	/** Actor tag to grant this character when it dies */
-	UPROPERTY(EditAnywhere, Category="Team")
-	FName DeathTag = FName("Dead");
+	// TeamByte, DeathTag, MaxHP now in BasePlayerCharacter
 
 	/** List of weapons picked up by the character */
 	TArray<AShooterWeapon*> OwnedWeapons;
@@ -72,10 +37,7 @@ protected:
 	/** Weapon currently equipped and ready to shoot with */
 	TObjectPtr<AShooterWeapon> CurrentWeapon;
 
-	UPROPERTY(EditAnywhere, Category ="Destruction", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
-	float RespawnTime = 5.0f;
-
-	FTimerHandle RespawnTimer;
+	// RespawnTime and RespawnTimer now in BasePlayerCharacter
 
 public:
 
@@ -120,17 +82,7 @@ public:
 	/** Handles jump end inputs from either controls or UI interfaces */
 	virtual void DoJumpEnd()  override;
 
-	/** Handles start firing input */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	void DoStartFiring();
-
-	/** Handles stop firing input */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	void DoStopFiring();
-
-	/** Handles switch weapon input */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	void DoSwitchWeapon();
+	// DoStartFiring, DoStopFiring, DoSwitchWeapon now in BasePlayerCharacter
 
 public:
 
@@ -173,9 +125,7 @@ protected:
 	/** Called when this character's HP is depleted */
 	void Die();
 
-	/** Called to allow Blueprint code to react to this character's death */
-	UFUNCTION(BlueprintImplementableEvent, Category="Shooter", meta = (DisplayName = "On Death"))
-	void BP_OnDeath();
+	// BP_OnDeath now in BasePlayerCharacter
 
 	/** Called from the respawn timer to destroy this character and force the PC to respawn */
 	void OnRespawn();

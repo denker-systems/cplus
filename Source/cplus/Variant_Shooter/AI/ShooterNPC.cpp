@@ -35,23 +35,8 @@ void AShooterNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 float AShooterNPC::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	// ignore if already dead
-	if (bIsDead)
-	{
-		return 0.0f;
-	}
-
-	// Reduce HP
-	CurrentHP -= Damage;
-
-	// Have we depleted HP?
-	if (CurrentHP <= 0.0f)
-	{
-		CurrentHP = 0.0f;
-		Die(DamageCauser);
-	}
-
-	return Damage;
+	// Call parent implementation (routes to HealthComponent)
+	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 
 void AShooterNPC::AttachWeaponMeshes(AShooterWeapon* WeaponToAttach)
@@ -148,42 +133,19 @@ void AShooterNPC::OnSemiWeaponRefire()
 	}
 }
 
-void AShooterNPC::Die(AActor* Killer)
+void AShooterNPC::OnHealthDepleted(AActor* Killer)
 {
-	// Call parent implementation (sets bIsDead, broadcasts OnAIDeath)
-	Super::Die(Killer);
+	// Call parent implementation (handles ragdoll, destruction, etc.)
+	Super::OnHealthDepleted(Killer);
 
-	// grant the death tag to the character
-	Tags.Add(DeathTag);
-
-	// call the delegate
+	// Call the delegate
 	OnPawnDeath.Broadcast();
 
-	// increment the team score
+	// Increment the team score
 	if (AShooterGameMode* GM = Cast<AShooterGameMode>(GetWorld()->GetAuthGameMode()))
 	{
 		GM->IncrementTeamScore(TeamByte);
 	}
-
-	// disable capsule collision
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	// stop movement
-	GetCharacterMovement()->StopMovementImmediately();
-	GetCharacterMovement()->StopActiveMovement();
-
-	// enable ragdoll physics on the third person mesh
-	GetMesh()->SetCollisionProfileName(RagdollCollisionProfile);
-	GetMesh()->SetSimulatePhysics(true);
-	GetMesh()->SetPhysicsBlendWeight(1.0f);
-
-	// schedule actor destruction
-	GetWorld()->GetTimerManager().SetTimer(DeathTimer, this, &AShooterNPC::DeferredDestruction, DeferredDestructionTime, false);
-}
-
-void AShooterNPC::DeferredDestruction()
-{
-	Destroy();
 }
 
 void AShooterNPC::StartShooting(AActor* ActorToShoot)

@@ -17,27 +17,13 @@ class AShooterWeapon;
  *  Holds and manages a weapon
  */
 UCLASS(abstract)
-class CPLUS_API AShooterNPC : public AHostileAICharacter, public IShooterWeaponHolder
+class CPLUS_API AShooterNPC : public AHostileAICharacter
 {
 	GENERATED_BODY()
 
 protected:
 
-	/** Name of the collision profile to use during ragdoll death */
-	UPROPERTY(EditAnywhere, Category="Damage")
-	FName RagdollCollisionProfile = FName("Ragdoll");
-
-	/** Time to wait after death before destroying this actor */
-	UPROPERTY(EditAnywhere, Category="Damage")
-	float DeferredDestructionTime = 5.0f;
-
-	/** Team byte for this character */
-	UPROPERTY(EditAnywhere, Category="Team")
-	uint8 TeamByte = 1;
-
-	/** Actor tag to grant this character when it dies */
-	UPROPERTY(EditAnywhere, Category="Team")
-	FName DeathTag = FName("Dead");
+	// RagdollCollisionProfile, DeferredDestructionTime, TeamByte, DeathTag now in BaseAICharacter
 
 	/** Pointer to the equipped weapon */
 	TObjectPtr<AShooterWeapon> Weapon;
@@ -46,38 +32,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Weapon")
 	TSubclassOf<AShooterWeapon> WeaponClass;
 
-	/** Name of the first person mesh weapon socket */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Weapons")
-	FName FirstPersonWeaponSocket = FName("HandGrip_R");
-
-	/** Name of the third person mesh weapon socket */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Weapons")
-	FName ThirdPersonWeaponSocket = FName("HandGrip_R");
-
-	/** Max range for aiming calculations */
-	UPROPERTY(EditAnywhere, Category="Aim")
-	float AimRange = 10000.0f;
-
-	/** Cone variance to apply while aiming */
-	UPROPERTY(EditAnywhere, Category="Aim")
-	float AimVarianceHalfAngle = 10.0f;
-
-	/** Minimum vertical offset from the target center to apply when aiming */
-	UPROPERTY(EditAnywhere, Category="Aim")
-	float MinAimOffsetZ = -35.0f;
-
-	/** Maximum vertical offset from the target center to apply when aiming */
-	UPROPERTY(EditAnywhere, Category="Aim")
-	float MaxAimOffsetZ = -60.0f;
-
-	/** Actor currently being targeted */
-	TObjectPtr<AActor> CurrentAimTarget;
-
-	/** If true, this character is currently shooting its weapon */
-	bool bIsShooting = false;
-
-	/** Deferred destruction on death timer */
-	FTimerHandle DeathTimer;
+	// Weapon sockets, aim settings, CurrentAimTarget, bIsShooting, DeathTimer now in BaseAICharacter
 
 public:
 
@@ -133,10 +88,7 @@ public:
 protected:
 
 	/** Called when HP is depleted and the character should die */
-	virtual void Die(AActor* Killer) override;
-
-	/** Called after death to destroy the actor */
-	void DeferredDestruction();
+	virtual void OnHealthDepleted(AActor* Killer) override;
 
 public:
 
