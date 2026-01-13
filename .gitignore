@@ -1,0 +1,92 @@
+# Unreal Engine .gitignore
+
+# Visual Studio 2022
+.vs/
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+
+# Unreal Engine Build Files
+Binaries/
+Build/
+Intermediate/
+DerivedDataCache/
+
+# Unreal Engine Saved Files
+Saved/
+!Saved/Config/
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.ipa
+
+# Unreal Engine Cache
+*.target
+*.modules
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# Crash Reports
+*.log
+*.dmp
+
+# Shader Cache
+ShaderCache/
+
+# Plugin Intermediate
+Plugins/*/Intermediate/
+Plugins/*/Binaries/
+
+# Starter Content (optional - uncomment if you don't want to track)
+# Content/StarterContent/
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
