@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **QuestUIManager** - Component for managing quest notification and journal widgets
+- **QuestNotificationWidget** - Shows quest started/completed/failed notifications
+- **QuestJournalWidget** - Quest journal UI with J key toggle (IA_OpenJournal input action)
+- **QuestCollectible** - Actor for collectible quest items with IQuestInteractable interface
+- **QuestInteractableObject** - Actor for interactable quest objects
+- **PlayerProgressionComponent** - Manages player XP, gold, reputation, and level progression
+- **TextRenderComponent prompts** - "Press E to talk/collect" prompts on interactables
+- **ShowPrompt/HidePrompt** - Added to IQuestInteractable interface for interaction prompts
+- **ApplyQuestRewards** - Quest reward application in QuestSubsystem
 - **HealthComponent** - Component-based health management for players and AI
 - **WeaponComponent** - Component-based weapon inventory and switching system
 - **BaseGameMode** - Clean game mode using BasePlayerCharacter and BasePlayerController
@@ -44,6 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated include paths for new folder structure
 
 ### Fixed
+- **NotifyQuestEvent** - Now checks all active quests when QuestID is NAME_None
+- **QuestTrackerComponent::AcceptQuest** - Now properly notifies QuestSubsystem
+- **NPC interaction prompts** - TextRenderComponent with billboard effect (faces camera)
 - **Character hierarchy shadowing errors** - Removed duplicate UPROPERTY members in child classes
 - **Input system** - Configured both IMC_Default (keyboard/gamepad) and IMC_MouseLook (mouse) for proper input handling
 - **Camera attachment** - Fixed FirstPersonCamera attachment to FirstPersonMesh head socket
