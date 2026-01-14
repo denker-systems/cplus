@@ -45,6 +45,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
+	virtual void Tick(float DeltaTime) override;
 
 	// === COMPONENTS ===
 
@@ -63,6 +64,18 @@ protected:
 	/** Quest giver component (for friendly NPCs) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UQuestGiverComponent* QuestGiver;
+
+	/** Interaction sphere for quest/interaction detection */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class USphereComponent* InteractionSphere;
+
+	/** Interaction radius for this NPC */
+	UPROPERTY(EditAnywhere, Category = "Interaction", meta = (ClampMin = 50, ClampMax = 500, Units = "cm"))
+	float InteractionRadius = 200.0f;
+
+	/** Enable debug visualization for interaction sphere */
+	UPROPERTY(EditAnywhere, Category = "Interaction|Debug")
+	bool bShowInteractionSphere = false;
 
 	// === AI SETTINGS ===
 

@@ -108,6 +108,34 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* SprintAction;
 
+	/** Interact input action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* InteractAction;
+
+	// === INTERACTION ===
+
+	/** Max distance for interaction raycast */
+	UPROPERTY(EditAnywhere, Category = "Interaction", meta = (ClampMin = 0, ClampMax = 1000, Units = "cm"))
+	float InteractionDistance = 300.0f;
+
+	/** Currently focused interactable actor */
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<AActor> CurrentInteractable;
+
+	/** Enable debug visualization for interaction raycast */
+	UPROPERTY(EditAnywhere, Category = "Interaction|Debug")
+	bool bShowInteractionDebug = false;
+
+	// === QUEST UI ===
+
+	/** Widget class for quest dialog (Blueprint: WBP_QuestGiverDialog) */
+	UPROPERTY(EditAnywhere, Category = "Quest|UI")
+	TSubclassOf<class UUserWidget> QuestGiverWidgetClass;
+
+	/** Current active quest dialog widget */
+	UPROPERTY()
+	TObjectPtr<class UUserWidget> CurrentQuestWidget;
+
 	// === SHOOTER FEATURES ===
 
 	/** Name of the first person mesh weapon socket */
@@ -233,6 +261,30 @@ protected:
 	/** Called while sprinting at a fixed time interval */
 	void SprintFixedTick();
 
+	// === INTERACTION ===
+
+	/** Check for interactable actors in front of player */
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void CheckForInteractable();
+
+	/** Perform interaction with current interactable */
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void DoInteract();
+
+	/** Blueprint event called when quest is offered to player */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Quest")
+	void OnQuestOfferedToPlayer(UQuestDefinition* Quest, AActor* QuestGiver);
+
+	/** Show quest dialog widget */
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void ShowQuestDialog(UQuestDefinition* Quest, AActor* QuestGiver);
+
+private:
+	/** Internal handler for quest offered delegate */
+	UFUNCTION()
+	void HandleQuestOffered(UQuestDefinition* Quest, AActor* QuestGiver);
+
+protected:
 	// === DEATH/RESPAWN ===
 
 	/** Called when this character's HP is depleted */

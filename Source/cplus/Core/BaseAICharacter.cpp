@@ -6,6 +6,7 @@
 #include "ShooterWeapon.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "TimerManager.h"
@@ -16,7 +17,17 @@ ABaseAICharacter::ABaseAICharacter()
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
 	QuestTarget = CreateDefaultSubobject<UQuestTargetComponent>(TEXT("QuestTarget"));
-	QuestGiver = CreateDefaultSubobject<UQuestGiverComponent>(TEXT("QuestGiver"));
+	// QuestGiver is added in Blueprint, not in C++
+	QuestGiver = nullptr;
+
+	// Create interaction sphere for quest/interaction detection
+	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
+	InteractionSphere->SetupAttachment(RootComponent);
+	InteractionSphere->SetSphereRadius(InteractionRadius);
+	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	InteractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	InteractionSphere->SetGenerateOverlapEvents(true);
 
 	// Disable tick by default
 	PrimaryActorTick.bCanEverTick = false;
@@ -25,6 +36,32 @@ ABaseAICharacter::ABaseAICharacter()
 void ABaseAICharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Get QuestGiver component (might be added in Blueprint)
+	if (!QuestGiver)
+	{
+		QuestGiver = FindComponentByClass<UQuestGiverComponent>();
+	}
+	
+	if (QuestGiver)
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> NPC INIT: [%s] QuestGiver component found: %p"), 
+			*GetName(), QuestGiver);
+	}
+
+	// Update interaction sphere radius
+	if (InteractionSphere)
+	{
+		InteractionSphere->SetSphereRadius(InteractionRadius);
+		UE_LOG(LogTemp, Display, TEXT(">>> NPC INIT: [%s] InteractionSphere radius set to %f cm"), 
+			*GetName(), InteractionRadius);
+	}
+
+	// Enable tick if debug visualization is on
+	if (bShowInteractionSphere)
+	{
+		PrimaryActorTick.bCanEverTick = true;
+	}
 
 	// Bind to health component death event
 	if (HealthComponent)
@@ -41,17 +78,59 @@ void ABaseAICharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
 	GetWorld()->GetTimerManager().ClearTimer(DeathTimer);
 }
 
+void ABaseAICharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	// Debug visualization for interaction sphere
+	if (bShowInteractionSphere && InteractionSphere)
+	{
+		FVector Location = GetActorLocation();
+		// Draw persistent cyan sphere
+		DrawDebugSphere(GetWorld(), Location, InteractionRadius, 24, FColor::Cyan, false, 0.0f, 0, 3.0f);
+		
+		// Also draw the actual sphere component bounds for comparison
+		FVector SphereLocation = InteractionSphere->GetComponentLocation();
+		float SphereRadius = InteractionSphere->GetScaledSphereRadius();
+		DrawDebugSphere(GetWorld(), SphereLocation, SphereRadius, 16, FColor::Green, false, 0.0f, 0, 2.0f);
+	}
+}
+
 // === IQuestInteractable INTERFACE ===
 
 void ABaseAICharacter::Interact_Implementation(AActor* Interactor)
 {
-	UE_LOG(LogTemp, Log, TEXT("BaseAICharacter: %s interacted with by %s"), 
+	UE_LOG(LogTemp, Display, TEXT(">>> NPC INTERACT: [%s] interacted with by [%s]"), 
 		*GetName(), *Interactor->GetName());
 
 	// Quest giver component handles quest offering
-	if (QuestGiver)
+	if (!QuestGiver)
 	{
-		// QuestGiver->OfferQuests(Interactor);
+		UE_LOG(LogTemp, Warning, TEXT(">>> NPC INTERACT: No QuestGiverComponent found on [%s]"), *GetName());
+		return;
+	}
+
+	if (!Interactor)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> NPC INTERACT: Interactor is null!"));
+		return;
+	}
+
+	TArray<UQuestDefinition*> Quests = QuestGiver->GetAvailableQuests(Interactor);
+	UE_LOG(LogTemp, Display, TEXT(">>> NPC INTERACT: QuestGiver has %d available quest(s)"), Quests.Num());
+	
+	if (Quests.Num() > 0)
+	{
+		// Offer first available quest
+		UE_LOG(LogTemp, Display, TEXT(">>> NPC INTERACT: Offering quest [%s] to player"), 
+			*Quests[0]->QuestID.ToString());
+		QuestGiver->OfferQuest(Quests[0], Interactor);
+		UE_LOG(LogTemp, Display, TEXT(">>> NPC INTERACT: Quest offered successfully!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> NPC INTERACT: No quests available to offer from [%s]"), *GetName());
+		UE_LOG(LogTemp, Warning, TEXT(">>> NPC INTERACT: Make sure to add Quest Definitions to AvailableQuests array in Blueprint!"));
 	}
 }
 

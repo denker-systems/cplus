@@ -5,7 +5,12 @@
 #include "HealthComponent.h"
 #include "WeaponComponent.h"
 #include "ShooterWeapon.h"
+#include "QuestInteractable.h"
+#include "QuestDefinition.h"
+#include "QuestGiverComponent.h"
+#include "QuestGiverWidget.h"
 #include "Animation/AnimInstance.h"
+#include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -15,6 +20,7 @@
 #include "InputActionValue.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "TimerManager.h"
+#include "DrawDebugHelpers.h"
 
 ABasePlayerCharacter::ABasePlayerCharacter()
 {
@@ -165,6 +171,12 @@ void ABasePlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ABasePlayerCharacter::DoStartSprint);
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ABasePlayerCharacter::DoEndSprint);
 		}
+
+		// Interaction
+		if (InteractAction)
+		{
+			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoInteract);
+		}
 	}
 }
 
@@ -184,11 +196,6 @@ void ABasePlayerCharacter::LookInput(const FInputActionValue& Value)
 
 void ABasePlayerCharacter::DoAim(float Yaw, float Pitch)
 {
-	if (Yaw != 0.0f || Pitch != 0.0f)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: DoAim called - Yaw=%f, Pitch=%f"), Yaw, Pitch);
-	}
-	
 	if (GetController())
 	{
 		// Pass the rotation inputs
@@ -445,6 +452,211 @@ void ABasePlayerCharacter::OnSemiWeaponRefire()
 bool ABasePlayerCharacter::IsDead() const
 {
 	return HealthComponent ? HealthComponent->IsDead() : false;
+}
+
+// === INTERACTION ===
+
+void ABasePlayerCharacter::CheckForInteractable()
+{
+	if (!FirstPersonCameraComponent)
+	{
+		return;
+	}
+
+	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
+	FVector End = Start + (FirstPersonCameraComponent->GetForwardVector() * InteractionDistance);
+
+	FHitResult Hit;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	// Use ECC_Pawn to hit characters (NPCs)
+	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Pawn, QueryParams);
+
+	// Debug visualization
+	if (bShowInteractionDebug)
+	{
+		if (bHit)
+		{
+			// Draw green line to hit point, then red line to end
+			DrawDebugLine(GetWorld(), Start, Hit.ImpactPoint, FColor::Green, false, 1.0f, 0, 3.0f);
+			DrawDebugLine(GetWorld(), Hit.ImpactPoint, End, FColor::Red, false, 1.0f, 0, 2.0f);
+			DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 15.0f, 12, FColor::Yellow, false, 1.0f);
+		}
+		else
+		{
+			// Draw red line if no hit
+			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 1.0f, 0, 3.0f);
+		}
+	}
+
+	if (bHit)
+	{
+		AActor* HitActor = Hit.GetActor();
+		if (HitActor && HitActor->GetClass()->ImplementsInterface(UQuestInteractable::StaticClass()))
+		{
+			CurrentInteractable = HitActor;
+			
+			if (bShowInteractionDebug)
+			{
+				UE_LOG(LogTemp, Display, TEXT(">>> INTERACTION DEBUG: Found interactable [%s] at distance %f cm"), 
+					*HitActor->GetName(), Hit.Distance);
+			}
+			return;
+		}
+		else if (bShowInteractionDebug && HitActor)
+		{
+			UE_LOG(LogTemp, Warning, TEXT(">>> INTERACTION DEBUG: Hit [%s] but it doesn't implement IQuestInteractable"), 
+				*HitActor->GetName());
+		}
+	}
+
+	// No interactable found
+	CurrentInteractable = nullptr;
+}
+
+void ABasePlayerCharacter::DoInteract()
+{
+	// Don't interact if quest widget is open
+	if (CurrentQuestWidget && CurrentQuestWidget->IsInViewport())
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> INTERACTION: Blocked - Quest widget is open"));
+		return;
+	}
+
+	// Check for interactable first
+	CheckForInteractable();
+
+	if (!CurrentInteractable)
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> INTERACTION: No interactable found within %f cm"), InteractionDistance);
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> INTERACTION: Player interacting with [%s]"), *CurrentInteractable->GetName());
+
+	// Check if this is a quest giver
+	if (UQuestGiverComponent* QuestGiver = CurrentInteractable->FindComponentByClass<UQuestGiverComponent>())
+	{
+		int32 QuestCount = QuestGiver->AvailableQuests.Num();
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST GIVER: Found QuestGiverComponent with %d available quest(s)"), QuestCount);
+		
+		if (!QuestGiver->OnQuestOffered.IsAlreadyBound(this, &ABasePlayerCharacter::HandleQuestOffered))
+		{
+			QuestGiver->OnQuestOffered.AddDynamic(this, &ABasePlayerCharacter::HandleQuestOffered);
+			UE_LOG(LogTemp, Display, TEXT(">>> QUEST GIVER: Bound to OnQuestOffered delegate"));
+		}
+	}
+
+	// Call the interface function
+	IQuestInteractable::Execute_Interact(CurrentInteractable, this);
+}
+
+void ABasePlayerCharacter::HandleQuestOffered(UQuestDefinition* Quest, AActor* QuestGiver)
+{
+	if (!Quest || !QuestGiver)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST OFFERED: Invalid Quest or QuestGiver!"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST OFFERED: [%s] from [%s]"), 
+		*Quest->QuestID.ToString(), *QuestGiver->GetName());
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST TITLE: %s"), *Quest->UIData.QuestTitle.ToString());
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST DESCRIPTION: %s"), *Quest->UIData.ShortDescription.ToString());
+
+	// Show quest dialog widget
+	ShowQuestDialog(Quest, QuestGiver);
+	
+	// Also call Blueprint event for custom handling
+	OnQuestOfferedToPlayer(Quest, QuestGiver);
+}
+
+void ABasePlayerCharacter::ShowQuestDialog(UQuestDefinition* Quest, AActor* QuestGiver)
+{
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: ========== ShowQuestDialog START =========="));
+	
+	if (!Quest || !QuestGiver)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Cannot show dialog - Quest=%p, QuestGiver=%p"), Quest, QuestGiver);
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Quest=[%s], QuestGiver=[%s]"), 
+		*Quest->QuestID.ToString(), *QuestGiver->GetName());
+
+	if (!QuestGiverWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: QuestGiverWidgetClass not set in Blueprint!"));
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Open BP_BasePlayerCharacter -> Class Defaults -> Quest|UI -> Set Quest Giver Widget Class"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: QuestGiverWidgetClass is set: %s"), 
+		*QuestGiverWidgetClass->GetName());
+
+	// Close existing widget if any
+	if (CurrentQuestWidget)
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Closing existing widget"));
+		CurrentQuestWidget->RemoveFromParent();
+		CurrentQuestWidget = nullptr;
+	}
+
+	// Create widget (as UUserWidget)
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Creating widget from class..."));
+	CurrentQuestWidget = CreateWidget<UUserWidget>(GetWorld(), QuestGiverWidgetClass);
+	if (!CurrentQuestWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Failed to create widget - CreateWidget returned null"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Widget created successfully: %s"), 
+		*CurrentQuestWidget->GetClass()->GetName());
+
+	// Cast to QuestGiverWidget to initialize
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Casting to QuestGiverWidget..."));
+	UQuestGiverWidget* QuestWidget = Cast<UQuestGiverWidget>(CurrentQuestWidget);
+	if (QuestWidget)
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Cast successful! Initializing widget..."));
+		// Initialize widget with quest data
+		QuestWidget->InitializeWidget(Quest, QuestGiver);
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Widget initialized"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Cast failed! Widget is not a QuestGiverWidget!"));
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Widget class: %s"), *CurrentQuestWidget->GetClass()->GetName());
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Make sure WBP_QuestGiverDialog has QuestGiverWidget as parent class"));
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: File -> Reparent Blueprint -> QuestGiverWidget"));
+		CurrentQuestWidget->RemoveFromParent();
+		CurrentQuestWidget = nullptr;
+		return;
+	}
+
+	// Add to viewport
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Adding widget to viewport..."));
+	CurrentQuestWidget->AddToViewport(100); // High Z-order to be on top
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Widget added to viewport"));
+
+	// Set input mode to UI
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Setting input mode to UI..."));
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		FInputModeUIOnly InputMode;
+		InputMode.SetWidgetToFocus(CurrentQuestWidget->TakeWidget());
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = true;
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Input mode set, mouse cursor shown"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> QUEST UI: Could not get PlayerController"));
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: ========== ShowQuestDialog SUCCESS =========="));
 }
 
 float ABasePlayerCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
