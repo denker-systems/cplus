@@ -26,4 +26,10 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Quest")
 	FText GetInteractionText() const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Quest")
+	void ShowPrompt();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Quest")
+	void HidePrompt();
 };

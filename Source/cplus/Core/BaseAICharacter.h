@@ -69,6 +69,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class USphereComponent* InteractionSphere;
 
+	/** Text render component for interaction prompt */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UTextRenderComponent* PromptText;
+
 	/** Interaction radius for this NPC */
 	UPROPERTY(EditAnywhere, Category = "Interaction", meta = (ClampMin = 50, ClampMax = 500, Units = "cm"))
 	float InteractionRadius = 200.0f;
@@ -143,6 +147,10 @@ public:
 	// === IQuestInteractable INTERFACE ===
 
 	virtual void Interact_Implementation(AActor* Interactor) override;
+	virtual bool CanInteract_Implementation(AActor* Interactor) const override;
+	virtual FText GetInteractionText_Implementation() const override;
+	virtual void ShowPrompt_Implementation() override;
+	virtual void HidePrompt_Implementation() override;
 
 	// === IQuestKillable INTERFACE ===
 

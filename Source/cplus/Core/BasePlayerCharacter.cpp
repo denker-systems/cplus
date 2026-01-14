@@ -4,6 +4,8 @@
 #include "InteractionComponent.h"
 #include "HealthComponent.h"
 #include "WeaponComponent.h"
+#include "PlayerProgressionComponent.h"
+#include "QuestUIManager.h"
 #include "ShooterWeapon.h"
 #include "QuestInteractable.h"
 #include "QuestDefinition.h"
@@ -65,6 +67,8 @@ ABasePlayerCharacter::ABasePlayerCharacter()
 	InteractionComponent = CreateDefaultSubobject<UInteractionComponent>(TEXT("InteractionComponent"));
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
+	ProgressionComponent = CreateDefaultSubobject<UPlayerProgressionComponent>(TEXT("ProgressionComponent"));
+	QuestUIManager = CreateDefaultSubobject<UQuestUIManager>(TEXT("QuestUIManager"));
 
 	// Configure character movement
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
@@ -176,6 +180,12 @@ void ABasePlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		if (InteractAction)
 		{
 			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoInteract);
+		}
+
+		// Open Quest Journal
+		if (OpenJournalAction)
+		{
+			EnhancedInputComponent->BindAction(OpenJournalAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoOpenJournal);
 		}
 	}
 }
@@ -490,6 +500,8 @@ void ABasePlayerCharacter::CheckForInteractable()
 		}
 	}
 
+	AActor* PreviousInteractable = CurrentInteractable;
+
 	if (bHit)
 	{
 		AActor* HitActor = Hit.GetActor();
@@ -502,6 +514,20 @@ void ABasePlayerCharacter::CheckForInteractable()
 				UE_LOG(LogTemp, Display, TEXT(">>> INTERACTION DEBUG: Found interactable [%s] at distance %f cm"), 
 					*HitActor->GetName(), Hit.Distance);
 			}
+			
+			// Show prompt if this is a new interactable
+			if (CurrentInteractable != PreviousInteractable)
+			{
+				// Hide previous prompt
+				if (PreviousInteractable && PreviousInteractable->GetClass()->ImplementsInterface(UQuestInteractable::StaticClass()))
+				{
+					IQuestInteractable::Execute_HidePrompt(PreviousInteractable);
+				}
+				
+				// Show new prompt
+				IQuestInteractable::Execute_ShowPrompt(CurrentInteractable);
+			}
+			
 			return;
 		}
 		else if (bShowInteractionDebug && HitActor)
@@ -511,8 +537,21 @@ void ABasePlayerCharacter::CheckForInteractable()
 		}
 	}
 
-	// No interactable found
+	// No interactable found - hide previous prompt
+	if (PreviousInteractable && PreviousInteractable->GetClass()->ImplementsInterface(UQuestInteractable::StaticClass()))
+	{
+		IQuestInteractable::Execute_HidePrompt(PreviousInteractable);
+	}
+	
 	CurrentInteractable = nullptr;
+}
+
+void ABasePlayerCharacter::DoOpenJournal()
+{
+	if (QuestUIManager)
+	{
+		QuestUIManager->ToggleQuestJournal();
+	}
 }
 
 void ABasePlayerCharacter::DoInteract()

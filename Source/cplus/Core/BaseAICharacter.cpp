@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "TimerManager.h"
@@ -28,6 +29,20 @@ ABaseAICharacter::ABaseAICharacter()
 	InteractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	InteractionSphere->SetGenerateOverlapEvents(true);
+
+	// Create text render component for interaction prompt
+	PromptText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("PromptText"));
+	PromptText->SetupAttachment(RootComponent);
+	PromptText->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f)); // Above NPC head
+	PromptText->SetWorldSize(45.0f);
+	PromptText->SetTextRenderColor(FColor::White);
+	PromptText->SetHorizontalAlignment(EHTA_Center);
+	PromptText->SetVerticalAlignment(EVRTA_TextCenter);
+	PromptText->SetVisibility(false); // Hidden by default
+	
+	// Make text always face camera
+	PromptText->SetHiddenInGame(false);
+	PromptText->bAlwaysRenderAsText = true;
 
 	// Disable tick by default
 	PrimaryActorTick.bCanEverTick = false;
@@ -57,11 +72,8 @@ void ABaseAICharacter::BeginPlay()
 			*GetName(), InteractionRadius);
 	}
 
-	// Enable tick if debug visualization is on
-	if (bShowInteractionSphere)
-	{
-		PrimaryActorTick.bCanEverTick = true;
-	}
+	// Enable tick for text rotation
+	PrimaryActorTick.bCanEverTick = true;
 
 	// Bind to health component death event
 	if (HealthComponent)
@@ -82,10 +94,24 @@ void ABaseAICharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// Make prompt text face camera
+	if (PromptText && PromptText->IsVisible())
+	{
+		APlayerController* PC = GetWorld()->GetFirstPlayerController();
+		if (PC && PC->PlayerCameraManager)
+		{
+			FVector CameraLocation = PC->PlayerCameraManager->GetCameraLocation();
+			FVector TextLocation = PromptText->GetComponentLocation();
+			FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(TextLocation, CameraLocation);
+			PromptText->SetWorldRotation(LookAtRotation);
+		}
+	}
+
 	// Debug visualization for interaction sphere
 	if (bShowInteractionSphere && InteractionSphere)
 	{
 		FVector Location = GetActorLocation();
+		
 		// Draw persistent cyan sphere
 		DrawDebugSphere(GetWorld(), Location, InteractionRadius, 24, FColor::Cyan, false, 0.0f, 0, 3.0f);
 		
@@ -97,6 +123,21 @@ void ABaseAICharacter::Tick(float DeltaTime)
 }
 
 // === IQuestInteractable INTERFACE ===
+
+bool ABaseAICharacter::CanInteract_Implementation(AActor* Interactor) const
+{
+	// Can interact if alive and has quest giver component
+	return !IsDead() && QuestGiver != nullptr;
+}
+
+FText ABaseAICharacter::GetInteractionText_Implementation() const
+{
+	if (QuestGiver)
+	{
+		return FText::FromString(TEXT("Talk"));
+	}
+	return FText::FromString(TEXT("Interact"));
+}
 
 void ABaseAICharacter::Interact_Implementation(AActor* Interactor)
 {
@@ -337,4 +378,29 @@ void ABaseAICharacter::OnHealthDepleted(AActor* Killer)
 void ABaseAICharacter::DeferredDestruction()
 {
 	Destroy();
+}
+
+void ABaseAICharacter::ShowPrompt_Implementation()
+{
+	if (PromptText)
+	{
+		// Show "Press E to talk" for quest givers, or generic interaction text
+		FText PromptMessage = QuestGiver ? 
+			FText::FromString(TEXT("Press E to talk")) : 
+			FText::FromString(TEXT("Press E to interact"));
+		
+		PromptText->SetText(PromptMessage);
+		PromptText->SetVisibility(true);
+		UE_LOG(LogTemp, Display, TEXT(">>> NPC PROMPT: Showing prompt on [%s]: %s"), 
+			*GetName(), *PromptMessage.ToString());
+	}
+}
+
+void ABaseAICharacter::HidePrompt_Implementation()
+{
+	if (PromptText)
+	{
+		PromptText->SetVisibility(false);
+		UE_LOG(LogTemp, Display, TEXT(">>> NPC PROMPT: Hiding prompt on [%s]"), *GetName());
+	}
 }

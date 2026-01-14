@@ -2,6 +2,7 @@
 
 
 #include "QuestTrackerComponent.h"
+#include "QuestSubSystem.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
@@ -27,8 +28,16 @@ void UQuestTrackerComponent::AcceptQuest(UQuestDefinition* Quest)
 		return;
 	}
 
+	// Add to local tracker
 	ActiveQuestIDs.AddUnique(Quest->QuestID);
 	OnQuestAccepted.Broadcast(Quest->QuestID, Quest);
+
+	// Also add to QuestSubsystem so notifications work
+	UQuestSubSystem* QuestSub = GetQuestSubsystem();
+	if (QuestSub)
+	{
+		QuestSub->AcceptQuest(Quest);
+	}
 }
 
 void UQuestTrackerComponent::AbandonQuest(FName QuestID)

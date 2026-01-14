@@ -12,6 +12,8 @@ class UInputAction;
 class UPawnNoiseEmitterComponent;
 class UHealthComponent;
 class UWeaponComponent;
+class UPlayerProgressionComponent;
+class UQuestUIManager;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSprintStateChanged, bool, bSprinting);
@@ -78,6 +80,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UWeaponComponent* WeaponComponent;
 
+	/** Player progression component (XP, Level, Gold) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPlayerProgressionComponent* ProgressionComponent;
+
+	/** Quest UI manager (handles quest notifications and journal) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UQuestUIManager* QuestUIManager;
+
 	// === INPUT ACTIONS ===
 
 	/** Jump Input Action */
@@ -111,6 +121,10 @@ protected:
 	/** Interact input action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* InteractAction;
+
+	/** Open quest journal input action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* OpenJournalAction;
 
 	// === INTERACTION ===
 
@@ -271,6 +285,10 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void DoInteract();
 
+	/** Open/toggle quest journal */
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void DoOpenJournal();
+
 	/** Blueprint event called when quest is offered to player */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Quest")
 	void OnQuestOfferedToPlayer(UQuestDefinition* Quest, AActor* QuestGiver);
@@ -332,6 +350,14 @@ public:
 	/** Get weapon component */
 	UFUNCTION(BlueprintPure, Category = "Player")
 	UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+
+	/** Get progression component */
+	UFUNCTION(BlueprintPure, Category = "Player")
+	UPlayerProgressionComponent* GetProgressionComponent() const { return ProgressionComponent; }
+
+	/** Get quest UI manager */
+	UFUNCTION(BlueprintPure, Category = "Player")
+	UQuestUIManager* GetQuestUIManager() const { return QuestUIManager; }
 
 	/** Returns the first person mesh */
 	UFUNCTION(BlueprintPure, Category = "Player")

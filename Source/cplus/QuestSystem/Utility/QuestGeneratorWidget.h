@@ -30,6 +30,34 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest Generation")
 	FString OutputFolder = TEXT("/Game/Plugin/Quests/TestQuests");
 
+	/** Generate objectives for quests */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest Generation")
+	bool bGenerateObjectives = true;
+
+	/** Generate rewards for quests */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest Generation")
+	bool bGenerateRewards = true;
+
+	/** Generate dialogs for quests */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest Generation")
+	bool bGenerateDialogs = true;
+
+	/** Minimum XP reward */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest Generation|Rewards", meta = (ClampMin = 0))
+	int32 MinXPReward = 50;
+
+	/** Maximum XP reward */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest Generation|Rewards", meta = (ClampMin = 0))
+	int32 MaxXPReward = 200;
+
+	/** Minimum Gold reward */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest Generation|Rewards", meta = (ClampMin = 0))
+	int32 MinGoldReward = 10;
+
+	/** Maximum Gold reward */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest Generation|Rewards", meta = (ClampMin = 0))
+	int32 MaxGoldReward = 100;
+
 	/** Generate test quests */
 	UFUNCTION(BlueprintCallable, Category = "Quest Generation")
 	void GenerateQuests();

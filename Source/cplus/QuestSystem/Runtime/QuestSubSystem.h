@@ -66,9 +66,43 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void AcceptQuest(UQuestDefinition* Quest);
 
+	/**
+	 * Apply quest rewards to player
+	 * @param PlayerActor The player to give rewards to
+	 * @param Rewards The rewards to apply
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void ApplyQuestRewards(AActor* PlayerActor, const FQuestReward& Rewards);
+
+	/**
+	 * Get all active quests
+	 * @return Array of active quest data
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Quest")
+	TArray<FActiveQuest> GetActiveQuests() const;
+
+	/**
+	 * Get quest definition by ID
+	 * @param QuestID The quest to retrieve
+	 * @return Quest definition or nullptr
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Quest")
+	UQuestDefinition* GetQuestDefinition(FName QuestID) const;
+
+	/**
+	 * Check if quest is active
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Quest")
+	bool IsQuestActive(FName QuestID) const;
+
 	FActiveQuest* FindActiveQuest(FName QuestID);
 
 protected:
+	/**
+	 * Process quest event for a specific quest
+	 * Helper method called by NotifyQuestEvent
+	 */
+	void ProcessQuestEvent(FName QuestID, FActiveQuest& ActiveQuest, const FGameplayTagContainer& EventTags, AActor* Instigator);
 
 	UPROPERTY()
 	TMap<FName, FActiveQuest> ActiveQuests;
