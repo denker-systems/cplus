@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BaseAICharacter with Health, Team system, QuestTarget component
 - AFriendlyAICharacter with QuestGiver component and IQuestInteractable
 - AHostileAICharacter with IQuestKillable interface
+- Quest giver interaction flow with quest offer UI (Accept/Decline)
+- Quest generator tools (Editor Utility Widget + console utility) for creating test QuestDefinition assets
+- Auto-loading quest definitions for quest givers from a content folder
 - Organized Source folder structure (Core, QuestSystem, InventorySystem, InteractionSystem)
 
 ### Changed
@@ -49,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GameplayTags not appearing (added to DefaultGameplayTags.ini with ImportTagsFromConfig)
 - ShooterNPC Die() signature to match BaseAICharacter (added Killer parameter)
 - ShooterNPC aiming logic for AI (uses actor eye location instead of FirstPersonCamera)
+- Quest giver interaction edge case where interact could trigger while the quest UI was open
 
 ### Removed
 - MyTestActor, MyTestClass (test files)

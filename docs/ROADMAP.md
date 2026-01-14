@@ -52,7 +52,7 @@
 - [x] Component architecture
 - [x] Event system with delegates
 - [x] GameplayTags for categorization
-- [ ] NPC Quest Integration
+- [x] NPC Quest Integration
 - [ ] Player Quest Journal UI
 - [ ] Quest completion effects
 
