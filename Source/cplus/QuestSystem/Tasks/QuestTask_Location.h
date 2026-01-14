@@ -51,4 +51,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Quest Task")
 	float GetDistanceToTarget(const FVector& FromLocation) const;
+
+	// UQuestTask interface
+	virtual FText GetTaskTypeName() const override;
 };

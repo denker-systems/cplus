@@ -14,4 +14,7 @@ class CPLUS_API UQuestTask_Interact : public UQuestTask
 public:
 
 	UQuestTask_Interact();
+
+	// UQuestTask interface
+	virtual FText GetTaskTypeName() const override;
 };

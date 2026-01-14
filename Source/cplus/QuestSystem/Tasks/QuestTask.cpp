@@ -34,3 +34,33 @@ float UQuestTask::GetProgressPercent() const
 	return static_cast<float>(CurrentCount) / static_cast<float>(TargetCount);
 }
 
+FText UQuestTask::GetProgressText(bool bShowPercentage) const
+{
+	if (bShowPercentage)
+	{
+		int32 Percentage = FMath::RoundToInt(GetProgressPercent() * 100.0f);
+		return FText::Format(FText::FromString("{0}%"), FText::AsNumber(Percentage));
+	}
+	else
+	{
+		return FText::Format(FText::FromString("{0}/{1}"), 
+			FText::AsNumber(CurrentCount), 
+			FText::AsNumber(TargetCount));
+	}
+}
+
+FText UQuestTask::GetTaskTypeName() const
+{
+	return FText::FromString("Task");
+}
+
+FText UQuestTask::GetDetailedProgressText() const
+{
+	// Format: "TaskType: Progress - Description"
+	// Example: "Collect: 3/10 - Collect Gold Coins"
+	return FText::Format(FText::FromString("{0}: {1} - {2}"),
+		GetTaskTypeName(),
+		GetProgressText(false),
+		TaskDescription);
+}
+

@@ -19,3 +19,8 @@ float UQuestTask_Location::GetDistanceToTarget(const FVector& FromLocation) cons
 {
 	return FVector::Dist(FromLocation, TargetLocation);
 }
+
+FText UQuestTask_Location::GetTaskTypeName() const
+{
+	return FText::FromString("Explore");
+}

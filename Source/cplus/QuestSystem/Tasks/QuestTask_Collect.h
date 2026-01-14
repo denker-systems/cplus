@@ -41,4 +41,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Quest Task")
 	bool DoesItemCount(FName CheckItemID, const FGameplayTagContainer& ItemTags) const;
+
+	// UQuestTask interface
+	virtual FText GetTaskTypeName() const override;
 };

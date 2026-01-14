@@ -108,6 +108,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Quest UI")
 	bool IsJournalOpen() const { return bIsJournalOpen; }
 
+	/**
+	 * Hide all quest UI (for Main Menu, etc.)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Quest UI")
+	void HideUI();
+
+	/**
+	 * Show all quest UI (restore after Main Menu, etc.)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Quest UI")
+	void ShowUI();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;

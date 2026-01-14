@@ -45,4 +45,26 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Quest")
 	float GetProgressPercent() const;
+
+	/**
+	 * Get progress as formatted text (e.g., "3/10", "50%")
+	 * @param bShowPercentage If true, shows percentage instead of fraction
+	 * @return Formatted progress text
+	 */
+	UFUNCTION(BlueprintPure, Category = "Quest")
+	FText GetProgressText(bool bShowPercentage = false) const;
+
+	/**
+	 * Get task type name for UI display (e.g., "Collect", "Kill", "Interact")
+	 * Override in subclasses to provide specific type names
+	 */
+	UFUNCTION(BlueprintPure, Category = "Quest")
+	virtual FText GetTaskTypeName() const;
+
+	/**
+	 * Get detailed progress description including task type and progress
+	 * (e.g., "Collect: 3/10 Gold Coins")
+	 */
+	UFUNCTION(BlueprintPure, Category = "Quest")
+	FText GetDetailedProgressText() const;
 };

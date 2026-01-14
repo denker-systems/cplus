@@ -57,6 +57,15 @@ void UHealthComponent::ResetHealth()
 	OnHealthChanged.Broadcast(1.0f);
 }
 
+void UHealthComponent::SetHealth(float NewHealth)
+{
+	CurrentHealth = FMath::Clamp(NewHealth, 0.0f, MaxHealth);
+	bIsDead = (CurrentHealth <= 0.0f);
+	OnHealthChanged.Broadcast(GetHealthPercent());
+	
+	UE_LOG(LogTemp, Display, TEXT(">>> HEALTH: SetHealth called - Health set to %.1f/%.1f"), CurrentHealth, MaxHealth);
+}
+
 float UHealthComponent::GetHealthPercent() const
 {
 	if (MaxHealth <= 0.0f)

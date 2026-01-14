@@ -36,4 +36,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Quest Task")
 	bool DoesEnemyCount(const FGameplayTagContainer& EnemyTags) const;
+
+	// UQuestTask interface
+	virtual FText GetTaskTypeName() const override;
 };

@@ -1,8 +1,10 @@
 #include "QuestGiverNPC.h"
+#include "QuestSystem/Components/QuestGiverComponent.h"
 
 AQuestGiverNPC::AQuestGiverNPC()
 {
-	// QuestGiver component inherited from AFriendlyAICharacter
+	// Create QuestGiver component (only for quest-giving NPCs)
+	QuestGiver = CreateDefaultSubobject<UQuestGiverComponent>(TEXT("QuestGiver"));
 }
 
 void AQuestGiverNPC::BeginPlay()

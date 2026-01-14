@@ -4,6 +4,7 @@
 #include "questNotificationWidget.h"
 #include "questJournalWidget.h"
 #include "QuestSubSystem.h"
+#include "Core/BaseGameMode.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -72,21 +73,29 @@ void UQuestUIManager::CreateNotificationWidget()
 {
 	if (!NotificationWidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("QuestUIManager: NotificationWidgetClass is not set"));
+		UE_LOG(LogTemp, Warning, TEXT("QuestUIManager: NotificationWidgetClass not set"));
 		return;
 	}
 
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!PC)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("QuestUIManager: Cannot create notification widget - no PlayerController"));
-		return;
-	}
-
-	NotificationWidget = CreateWidget<UQuestNotificationWidget>(PC, NotificationWidgetClass);
+	NotificationWidget = CreateWidget<UQuestNotificationWidget>(GetWorld(), NotificationWidgetClass);
 	if (NotificationWidget)
 	{
-		NotificationWidget->AddToViewport(100); // High Z-order for notifications
+		NotificationWidget->AddToViewport(100); // Lower Z-order than journal
+		
+		// Check if Main Menu is active and hide if so
+		if (AGameModeBase* GameMode = GetWorld()->GetAuthGameMode())
+		{
+			if (ABaseGameMode* BaseGameMode = Cast<ABaseGameMode>(GameMode))
+			{
+				if (BaseGameMode->IsMainMenuActive())
+				{
+					NotificationWidget->SetVisibility(ESlateVisibility::Hidden);
+					UE_LOG(LogTemp, Log, TEXT("QuestUIManager: Notification widget created and hidden (Main Menu active)"));
+					return;
+				}
+			}
+		}
+		
 		UE_LOG(LogTemp, Log, TEXT("QuestUIManager: Notification widget created"));
 	}
 }
@@ -130,6 +139,13 @@ void UQuestUIManager::HandleQuestStarted(FName QuestID, UQuestDefinition* Quest)
 	{
 		UE_LOG(LogTemp, Warning, TEXT(">>> QUEST UI MANAGER: Auto-show disabled, skipping notification"));
 	}
+
+	// Auto-track new quest if enabled
+	if (NotificationWidget && NotificationWidget->bAutoTrackNewQuests)
+	{
+		UE_LOG(LogTemp, Log, TEXT(">>> QUEST UI MANAGER: Auto-tracking new quest"));
+		NotificationWidget->TrackQuest(Quest, 0);
+	}
 }
 
 void UQuestUIManager::HandleQuestCompleted(FName QuestID, const FQuestReward& Rewards)
@@ -141,6 +157,17 @@ void UQuestUIManager::HandleQuestCompleted(FName QuestID, const FQuestReward& Re
 	{
 		ShowQuestCompletedNotification(QuestID, Rewards);
 	}
+
+	// Untrack quest if it's the one being tracked
+	if (NotificationWidget && NotificationWidget->IsTrackingQuest())
+	{
+		UQuestDefinition* TrackedQuest = NotificationWidget->GetTrackedQuest();
+		if (TrackedQuest && TrackedQuest->QuestID == QuestID)
+		{
+			UE_LOG(LogTemp, Log, TEXT("QuestUIManager: Untracking completed quest"));
+			NotificationWidget->UntrackQuest();
+		}
+	}
 }
 
 void UQuestUIManager::HandleQuestTaskUpdated(FName QuestID, int32 ObjectiveIndex, int32 TaskIndex)
@@ -151,6 +178,17 @@ void UQuestUIManager::HandleQuestTaskUpdated(FName QuestID, int32 ObjectiveIndex
 	if (bAutoShowObjectiveUpdated)
 	{
 		ShowObjectiveUpdatedNotification(QuestID, ObjectiveIndex, TaskIndex);
+	}
+
+	// Update tracked quest progress if this is the tracked quest
+	if (NotificationWidget && NotificationWidget->IsTrackingQuest())
+	{
+		UQuestDefinition* TrackedQuest = NotificationWidget->GetTrackedQuest();
+		if (TrackedQuest && TrackedQuest->QuestID == QuestID)
+		{
+			UE_LOG(LogTemp, Log, TEXT("QuestUIManager: Updating tracked quest progress"));
+			NotificationWidget->UpdateTrackedProgress();
+		}
 	}
 }
 
@@ -286,5 +324,63 @@ void UQuestUIManager::ToggleQuestJournal()
 	else
 	{
 		OpenQuestJournal();
+	}
+}
+
+void UQuestUIManager::HideUI()
+{
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Hiding all quest UI"));
+
+	// Hide notification widget
+	if (NotificationWidget)
+	{
+		if (NotificationWidget->IsInViewport())
+		{
+			NotificationWidget->SetVisibility(ESlateVisibility::Hidden);
+			UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Notification widget hidden"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Notification widget not in viewport"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Notification widget is null"));
+	}
+
+	// Hide journal widget
+	if (JournalWidget)
+	{
+		if (JournalWidget->IsInViewport())
+		{
+			JournalWidget->SetVisibility(ESlateVisibility::Hidden);
+			UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Journal widget hidden"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Journal widget not in viewport"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Journal widget is null"));
+	}
+}
+
+void UQuestUIManager::ShowUI()
+{
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Showing all quest UI"));
+
+	// Show notification widget (if it exists)
+	if (NotificationWidget && NotificationWidget->IsInViewport())
+	{
+		NotificationWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+
+	// Show journal widget only if it was open before
+	if (JournalWidget && JournalWidget->IsInViewport() && bIsJournalOpen)
+	{
+		JournalWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 }

@@ -13,7 +13,7 @@ class UPawnNoiseEmitterComponent;
 class UHealthComponent;
 class UWeaponComponent;
 class UPlayerProgressionComponent;
-class UQuestUIManager;
+class UUIManager;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSprintStateChanged, bool, bSprinting);
@@ -84,9 +84,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UPlayerProgressionComponent* ProgressionComponent;
 
-	/** Quest UI manager (handles quest notifications and journal) */
+	/** UI Manager (handles ALL UI: pause menu, quest UI, inventory, etc) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UQuestUIManager* QuestUIManager;
+	UUIManager* UIManager;
 
 	// === INPUT ACTIONS ===
 
@@ -126,6 +126,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* OpenJournalAction;
 
+	/** Pause menu input action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* PauseAction;
+
 	// === INTERACTION ===
 
 	/** Max distance for interaction raycast */
@@ -140,11 +144,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Interaction|Debug")
 	bool bShowInteractionDebug = false;
 
-	// === QUEST UI ===
+	// === QUEST DIALOG WIDGETS ===
+	// TODO: Refactor - Move these to QuestUIManager for better architecture
+	//       All quest UI should be managed by QuestUIManager, not directly on player
 
 	/** Widget class for quest dialog (Blueprint: WBP_QuestGiverDialog) */
-	UPROPERTY(EditAnywhere, Category = "Quest|UI")
+	UPROPERTY(EditAnywhere, Category = "UI Manager")
 	TSubclassOf<class UUserWidget> QuestGiverWidgetClass;
+
+	/** Widget class for quest completion dialog (Blueprint: WBP_QuestCompletionDialog) */
+	UPROPERTY(EditAnywhere, Category = "UI Manager")
+	TSubclassOf<class UUserWidget> QuestCompletionWidgetClass;
 
 	/** Current active quest dialog widget */
 	UPROPERTY()
@@ -289,6 +299,10 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void DoOpenJournal();
 
+	/** Toggle pause menu */
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void DoPauseMenu();
+
 	/** Blueprint event called when quest is offered to player */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Quest")
 	void OnQuestOfferedToPlayer(UQuestDefinition* Quest, AActor* QuestGiver);
@@ -297,10 +311,18 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void ShowQuestDialog(UQuestDefinition* Quest, AActor* QuestGiver);
 
+	/** Show quest completion dialog widget */
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void ShowQuestCompletionDialog(UQuestDefinition* Quest, const struct FQuestReward& Rewards, AActor* QuestGiver);
+
 private:
 	/** Internal handler for quest offered delegate */
 	UFUNCTION()
 	void HandleQuestOffered(UQuestDefinition* Quest, AActor* QuestGiver);
+
+	/** Internal handler for quest turned in delegate */
+	UFUNCTION()
+	void HandleQuestTurnedIn(FName QuestID, UQuestDefinition* Quest, AActor* QuestGiver);
 
 protected:
 	// === DEATH/RESPAWN ===
@@ -355,9 +377,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player")
 	UPlayerProgressionComponent* GetProgressionComponent() const { return ProgressionComponent; }
 
-	/** Get quest UI manager */
+	/** Get UI manager */
 	UFUNCTION(BlueprintPure, Category = "Player")
-	UQuestUIManager* GetQuestUIManager() const { return QuestUIManager; }
+	UUIManager* GetUIManager() const { return UIManager; }
 
 	/** Returns the first person mesh */
 	UFUNCTION(BlueprintPure, Category = "Player")

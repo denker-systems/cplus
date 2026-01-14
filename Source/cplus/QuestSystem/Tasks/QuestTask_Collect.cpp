@@ -25,3 +25,8 @@ bool UQuestTask_Collect::DoesItemCount(FName CheckItemID, const FGameplayTagCont
 	// Item doesn't match criteria
 	return false;
 }
+
+FText UQuestTask_Collect::GetTaskTypeName() const
+{
+	return FText::FromString("Collect");
+}

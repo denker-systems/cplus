@@ -25,3 +25,8 @@ bool UQuestTask_Kill::DoesEnemyCount(const FGameplayTagContainer& EnemyTags) con
 	// No valid tag specified, don't count
 	return false;
 }
+
+FText UQuestTask_Kill::GetTaskTypeName() const
+{
+	return FText::FromString("Kill");
+}

@@ -5,12 +5,14 @@
 #include "HealthComponent.h"
 #include "WeaponComponent.h"
 #include "PlayerProgressionComponent.h"
-#include "QuestUIManager.h"
+#include "UI/UIManager.h"
+#include "QuestSystem/UI/QuestUIManager.h"
 #include "ShooterWeapon.h"
 #include "QuestInteractable.h"
 #include "QuestDefinition.h"
 #include "QuestGiverComponent.h"
 #include "QuestGiverWidget.h"
+#include "QuestSystem/UI/QuestCompletionWidget.h"
 #include "Animation/AnimInstance.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
@@ -68,7 +70,7 @@ ABasePlayerCharacter::ABasePlayerCharacter()
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
 	ProgressionComponent = CreateDefaultSubobject<UPlayerProgressionComponent>(TEXT("ProgressionComponent"));
-	QuestUIManager = CreateDefaultSubobject<UQuestUIManager>(TEXT("QuestUIManager"));
+	UIManager = CreateDefaultSubobject<UUIManager>(TEXT("UIManager"));
 
 	// Configure character movement
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
@@ -186,6 +188,12 @@ void ABasePlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		if (OpenJournalAction)
 		{
 			EnhancedInputComponent->BindAction(OpenJournalAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoOpenJournal);
+		}
+
+		// Pause Menu
+		if (PauseAction)
+		{
+			EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoPauseMenu);
 		}
 	}
 }
@@ -548,9 +556,17 @@ void ABasePlayerCharacter::CheckForInteractable()
 
 void ABasePlayerCharacter::DoOpenJournal()
 {
-	if (QuestUIManager)
+	if (UIManager && UIManager->GetQuestUIManager())
 	{
-		QuestUIManager->ToggleQuestJournal();
+		UIManager->GetQuestUIManager()->ToggleQuestJournal();
+	}
+}
+
+void ABasePlayerCharacter::DoPauseMenu()
+{
+	if (UIManager)
+	{
+		UIManager->TogglePauseMenu();
 	}
 }
 
@@ -585,6 +601,12 @@ void ABasePlayerCharacter::DoInteract()
 			QuestGiver->OnQuestOffered.AddDynamic(this, &ABasePlayerCharacter::HandleQuestOffered);
 			UE_LOG(LogTemp, Display, TEXT(">>> QUEST GIVER: Bound to OnQuestOffered delegate"));
 		}
+		
+		if (!QuestGiver->OnQuestTurnedIn.IsAlreadyBound(this, &ABasePlayerCharacter::HandleQuestTurnedIn))
+		{
+			QuestGiver->OnQuestTurnedIn.AddDynamic(this, &ABasePlayerCharacter::HandleQuestTurnedIn);
+			UE_LOG(LogTemp, Display, TEXT(">>> QUEST GIVER: Bound to OnQuestTurnedIn delegate"));
+		}
 	}
 
 	// Call the interface function
@@ -609,6 +631,22 @@ void ABasePlayerCharacter::HandleQuestOffered(UQuestDefinition* Quest, AActor* Q
 	
 	// Also call Blueprint event for custom handling
 	OnQuestOfferedToPlayer(Quest, QuestGiver);
+}
+
+void ABasePlayerCharacter::HandleQuestTurnedIn(FName QuestID, UQuestDefinition* Quest, AActor* QuestGiver)
+{
+	if (!Quest || !QuestGiver)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST TURNED IN: Invalid Quest or QuestGiver!"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST TURNED IN: [%s] from [%s]"), 
+		*QuestID.ToString(), *QuestGiver->GetName());
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST TITLE: %s"), *Quest->UIData.QuestTitle.ToString());
+
+	// Show quest completion dialog widget
+	ShowQuestCompletionDialog(Quest, Quest->Rewards, QuestGiver);
 }
 
 void ABasePlayerCharacter::ShowQuestDialog(UQuestDefinition* Quest, AActor* QuestGiver)
@@ -696,6 +734,87 @@ void ABasePlayerCharacter::ShowQuestDialog(UQuestDefinition* Quest, AActor* Ques
 	}
 
 	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: ========== ShowQuestDialog SUCCESS =========="));
+}
+
+void ABasePlayerCharacter::ShowQuestCompletionDialog(UQuestDefinition* Quest, const FQuestReward& Rewards, AActor* QuestGiver)
+{
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: ========== ShowQuestCompletionDialog START =========="));
+	
+	if (!Quest || !QuestGiver)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: Cannot show dialog - Quest=%p, QuestGiver=%p"), Quest, QuestGiver);
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Quest=[%s], QuestGiver=[%s]"), 
+		*Quest->QuestID.ToString(), *QuestGiver->GetName());
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Rewards - XP:%d, Gold:%d"), 
+		Rewards.ExperiencePoints, Rewards.Gold);
+
+	if (!QuestCompletionWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: QuestCompletionWidgetClass not set in Blueprint!"));
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: Open BP_BasePlayerCharacter -> Class Defaults -> Quest|UI -> Set Quest Completion Widget Class"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: QuestCompletionWidgetClass is set: %s"), 
+		*QuestCompletionWidgetClass->GetName());
+
+	// Close existing widget if any
+	if (CurrentQuestWidget)
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Closing existing widget"));
+		CurrentQuestWidget->RemoveFromParent();
+		CurrentQuestWidget = nullptr;
+	}
+
+	// Create widget
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Creating widget from class..."));
+	CurrentQuestWidget = CreateWidget<UUserWidget>(GetWorld(), QuestCompletionWidgetClass);
+	if (!CurrentQuestWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: Failed to create widget - CreateWidget returned null"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Widget created successfully: %s"), 
+		*CurrentQuestWidget->GetClass()->GetName());
+
+	// Cast to QuestCompletionWidget and initialize
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Casting to QuestCompletionWidget..."));
+	if (UQuestCompletionWidget* CompletionWidget = Cast<UQuestCompletionWidget>(CurrentQuestWidget))
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Cast successful! Initializing widget..."));
+		CompletionWidget->InitializeWidget(Quest, Rewards, QuestGiver);
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Widget initialized"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: Cast failed! Widget is not a QuestCompletionWidget!"));
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: Make sure WBP_QuestCompletionDialog has QuestCompletionWidget as parent class"));
+		CurrentQuestWidget->RemoveFromParent();
+		CurrentQuestWidget = nullptr;
+		return;
+	}
+
+	// Add to viewport
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Adding widget to viewport..."));
+	CurrentQuestWidget->AddToViewport(100);
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Widget added to viewport"));
+
+	// Set input mode to UI
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Setting input mode to UI..."));
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		FInputModeUIOnly InputMode;
+		InputMode.SetWidgetToFocus(CurrentQuestWidget->TakeWidget());
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = true;
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Input mode set, mouse cursor shown"));
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: ========== ShowQuestCompletionDialog SUCCESS =========="));
 }
 
 float ABasePlayerCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

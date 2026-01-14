@@ -33,6 +33,11 @@ struct FActiveQuest
 
 	UPROPERTY(BlueprintReadOnly)
 	FDateTime AcceptedTime;
+
+	/** Task progress for current objective (CurrentCount for each task) */
+	/** CRITICAL: Store progress here, NOT in QuestDefinition DataAsset! */
+	UPROPERTY(BlueprintReadOnly)
+	TArray<int32> TaskProgress;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQuestStarted, FName, QuestID, UQuestDefinition*, Quest);
@@ -94,6 +99,32 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Quest")
 	bool IsQuestActive(FName QuestID) const;
+
+	/**
+	 * Reset all quest progress (for game restart/debug)
+	 * Clears all active quests and resets all task progress
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void ResetAllQuests();
+
+	/**
+	 * Remove a quest from active quests (after turn-in)
+	 * @param QuestID The quest to remove
+	 * @return True if quest was removed
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	bool RemoveQuest(FName QuestID);
+
+	/**
+	 * Load quest progress from save data
+	 * @param QuestID Quest identifier
+	 * @param State Quest state (0=NotStarted, 1=Active, 2=Completed, 3=Failed)
+	 * @param CurrentObjectiveIndex Current objective index
+	 * @param TaskProgress Array of task progress values (CurrentCount for each task)
+	 * @param AcceptedTime When quest was accepted
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Quest|Save")
+	void LoadQuestProgress(FName QuestID, uint8 State, int32 CurrentObjectiveIndex, const TArray<int32>& TaskProgress, FDateTime AcceptedTime);
 
 	FActiveQuest* FindActiveQuest(FName QuestID);
 

@@ -18,7 +18,7 @@ ABaseAICharacter::ABaseAICharacter()
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
 	QuestTarget = CreateDefaultSubobject<UQuestTargetComponent>(TEXT("QuestTarget"));
-	// QuestGiver is added in Blueprint, not in C++
+	// QuestGiver component is created in derived classes (e.g., QuestGiverNPC) that need it
 	QuestGiver = nullptr;
 
 	// Create interaction sphere for quest/interaction detection
@@ -144,7 +144,7 @@ void ABaseAICharacter::Interact_Implementation(AActor* Interactor)
 	UE_LOG(LogTemp, Display, TEXT(">>> NPC INTERACT: [%s] interacted with by [%s]"), 
 		*GetName(), *Interactor->GetName());
 
-	// Quest giver component handles quest offering
+	// Quest giver component handles both turn-in and quest offering
 	if (!QuestGiver)
 	{
 		UE_LOG(LogTemp, Warning, TEXT(">>> NPC INTERACT: No QuestGiverComponent found on [%s]"), *GetName());
@@ -157,22 +157,8 @@ void ABaseAICharacter::Interact_Implementation(AActor* Interactor)
 		return;
 	}
 
-	TArray<UQuestDefinition*> Quests = QuestGiver->GetAvailableQuests(Interactor);
-	UE_LOG(LogTemp, Display, TEXT(">>> NPC INTERACT: QuestGiver has %d available quest(s)"), Quests.Num());
-	
-	if (Quests.Num() > 0)
-	{
-		// Offer first available quest
-		UE_LOG(LogTemp, Display, TEXT(">>> NPC INTERACT: Offering quest [%s] to player"), 
-			*Quests[0]->QuestID.ToString());
-		QuestGiver->OfferQuest(Quests[0], Interactor);
-		UE_LOG(LogTemp, Display, TEXT(">>> NPC INTERACT: Quest offered successfully!"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT(">>> NPC INTERACT: No quests available to offer from [%s]"), *GetName());
-		UE_LOG(LogTemp, Warning, TEXT(">>> NPC INTERACT: Make sure to add Quest Definitions to AvailableQuests array in Blueprint!"));
-	}
+	// HandleInteraction automatically checks for completed quests first, then offers new quests
+	QuestGiver->HandleInteraction(Interactor);
 }
 
 // === IQuestKillable INTERFACE ===

@@ -61,6 +61,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void ResetHealth();
 
+	/** Set health to specific value (for save/load) */
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void SetHealth(float NewHealth);
+
 	/** Check if dead */
 	UFUNCTION(BlueprintPure, Category = "Health")
 	bool IsDead() const { return bIsDead; }
