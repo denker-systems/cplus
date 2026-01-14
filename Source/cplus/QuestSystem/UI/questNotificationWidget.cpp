@@ -7,6 +7,7 @@
 #include "Components/HorizontalBox.h"
 #include "Components/VerticalBox.h"
 #include "QuestTask.h"
+#include "QuestSubSystem.h"
 
 void UQuestNotificationWidget::ShowQuestStarted(UQuestDefinition* Quest)
 {
@@ -232,7 +233,17 @@ void UQuestNotificationWidget::PopulateTrackerContent()
 				}
 
 				UE_LOG(LogTemp, Display, TEXT(">>> TRACKER: Creating entry for Task[%d]: %s"), TaskIndex, *Task->TaskDescription.ToString());
-				UE_LOG(LogTemp, Display, TEXT(">>> TRACKER: Task progress: %d/%d"), Task->CurrentCount, Task->TargetCount);
+				
+				// Get progress from QuestSubsystem, not from DataAsset
+				int32 CurrentCount = 0;
+				int32 TargetCount = Task->TargetCount;
+				
+				if (UQuestSubSystem* QuestSub = GetGameInstance()->GetSubsystem<UQuestSubSystem>())
+				{
+					CurrentCount = QuestSub->GetTaskProgress(TrackedQuest->QuestID, TaskIndex);
+				}
+				
+				UE_LOG(LogTemp, Display, TEXT(">>> TRACKER: Task progress: %d/%d"), CurrentCount, TargetCount);
 
 				// Create horizontal box for task entry
 				UHorizontalBox* TaskEntry = NewObject<UHorizontalBox>(this);
@@ -289,12 +300,25 @@ void UQuestNotificationWidget::PopulateTrackerContent()
 				UTextBlock* ProgressText = NewObject<UTextBlock>(this);
 				if (ProgressText)
 				{
-					FText ProgressString = FText::Format(
-						FText::FromString(TEXT(" ({0})")), 
-						Task->GetProgressText(false)
-					);
-					ProgressText->SetText(ProgressString);
-					ProgressText->SetColorAndOpacity(GetTaskColor(Task));
+					FString ProgressStr = FString::Printf(TEXT(" (%d/%d)"), CurrentCount, TargetCount);
+					ProgressText->SetText(FText::FromString(ProgressStr));
+					
+					// Color based on progress
+					FLinearColor ProgressColor;
+					if (CurrentCount >= TargetCount)
+					{
+						ProgressColor = FLinearColor(0.0f, 1.0f, 0.0f, 1.0f); // Green
+					}
+					else if (CurrentCount > 0)
+					{
+						ProgressColor = FLinearColor(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+					}
+					else
+					{
+						ProgressColor = FLinearColor(0.5f, 0.5f, 0.5f, 1.0f); // Gray
+					}
+					
+					ProgressText->SetColorAndOpacity(ProgressColor);
 					TaskEntry->AddChild(ProgressText);
 				}
 
@@ -352,23 +376,7 @@ FText UQuestNotificationWidget::GetObjectiveText() const
 
 FLinearColor UQuestNotificationWidget::GetTaskColor(UQuestTask* Task) const
 {
-	if (!Task)
-	{
-		return FLinearColor::White;
-	}
-
-	// Green if complete
-	if (Task->IsComplete())
-	{
-		return FLinearColor(0.0f, 1.0f, 0.0f, 1.0f); // Green
-	}
-
-	// Yellow if in progress
-	if (Task->CurrentCount > 0)
-	{
-		return FLinearColor(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
-	}
-
-	// White if not started
+	// DEPRECATED: Use progress from QuestSubsystem instead
+	// This function is kept for compatibility but returns white
 	return FLinearColor::White;
 }

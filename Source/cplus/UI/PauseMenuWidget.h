@@ -85,12 +85,6 @@ protected:
 	void OnMainMenuClicked();
 
 	/**
-	 * Reset game (clear all quest progress and reload level)
-	 */
-	UFUNCTION()
-	void OnResetClicked();
-
-	/**
 	 * Quit to main menu or exit game
 	 */
 	UFUNCTION()

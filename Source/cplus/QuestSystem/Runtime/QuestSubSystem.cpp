@@ -17,33 +17,12 @@ void UQuestSubSystem::ResetAllQuests()
 	UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: ResetAllQuests called"));
 	UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Clearing %d active quest(s)"), ActiveQuests.Num());
 	
-	// Reset all task progress in active quests
-	for (auto& Pair : ActiveQuests)
-	{
-		FActiveQuest& ActiveQuest = Pair.Value;
-		if (ActiveQuest.QuestDefinition)
-		{
-			UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Resetting tasks for quest: %s"), *Pair.Key.ToString());
-			
-			// Reset all objectives
-			for (FQuestObjective& Objective : ActiveQuest.QuestDefinition->Objectives)
-			{
-				// Reset all tasks in this objective
-				for (UQuestTask* Task : Objective.Tasks)
-				{
-					if (Task)
-					{
-						Task->CurrentCount = 0;
-						UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Reset task: %s (0/%d)"), 
-							*Task->TaskDescription.ToString(), Task->TargetCount);
-					}
-				}
-			}
-		}
-	}
-	
-	// Clear all active quests
+	// Clear all active quests - TaskProgress arrays are automatically destroyed
+	// No need to reset DataAssets - they remain immutable
 	ActiveQuests.Empty();
+	
+	// Clear completed quests history
+	CompletedQuests.Empty();
 	
 	UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: All quests reset"));
 }
@@ -54,6 +33,10 @@ bool UQuestSubSystem::RemoveQuest(FName QuestID)
 	
 	if (ActiveQuests.Contains(QuestID))
 	{
+		// Add to completed quests before removing
+		CompletedQuests.Add(QuestID);
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Quest marked as completed (turned in)"));
+		
 		ActiveQuests.Remove(QuestID);
 		UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Quest removed. ActiveQuests.Num() = %d"), ActiveQuests.Num());
 		return true;
@@ -126,14 +109,22 @@ void UQuestSubSystem::ProcessQuestEvent(FName QuestID, FActiveQuest& ActiveQuest
 			continue;
 		}
 		
-		if (Task->IsComplete())
+		// Check if task already complete using TaskProgress array
+		if (ActiveQuest.TaskProgress.IsValidIndex(TaskIndex))
 		{
-			UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Task[%d] already complete, skipping"), TaskIndex);
-			continue;
+			int32 Current = ActiveQuest.TaskProgress[TaskIndex];
+			int32 Target = Task->TargetCount;
+			
+			if (Current >= Target)
+			{
+				UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Task[%d] already complete, skipping"), TaskIndex);
+				continue;
+			}
+			
+			UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Checking Task[%d]: %s"), TaskIndex, *Task->TaskDescription.ToString());
+			UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Task progress: %d/%d"), Current, Target);
 		}
-
-		UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Checking Task[%d]: %s"), TaskIndex, *Task->TaskDescription.ToString());
-		UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Task progress: %d/%d"), Task->CurrentCount, Task->TargetCount);
+		
 		UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Task tags: %d, Event tags: %d"), Task->TaskTags.Num(), EventTags.Num());
 
 		bool bTaskMatched = false;
@@ -167,17 +158,56 @@ void UQuestSubSystem::ProcessQuestEvent(FName QuestID, FActiveQuest& ActiveQuest
 			UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Task matched! Quest=%s, Task=%s"), 
 				*QuestID.ToString(), *Task->TaskDescription.ToString());
 			
-			Task->UpdateProgress(1);
-			UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Task progress updated: %d/%d"), 
-				Task->CurrentCount, Task->TargetCount);
+			// Update progress in FActiveQuest.TaskProgress, NOT in DataAsset
+			if (ActiveQuest.TaskProgress.IsValidIndex(TaskIndex))
+			{
+				ActiveQuest.TaskProgress[TaskIndex]++;
+				
+				int32 CurrentCount = ActiveQuest.TaskProgress[TaskIndex];
+				int32 TargetCount = Task->TargetCount;
+				
+				UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Task progress updated: %d/%d"), 
+					CurrentCount, TargetCount);
+			}
 			
 			OnQuestTaskUpdated.Broadcast(QuestID, ActiveQuest.CurrentObjectiveIndex, TaskIndex);
 			UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: OnQuestTaskUpdated broadcasted"));
 
-			if (CurrentObjective.IsComplete())
+			// Check if all tasks in objective are complete
+			bool bObjectiveComplete = true;
+			for (int32 i = 0; i < CurrentObjective.Tasks.Num(); ++i)
+			{
+				if (ActiveQuest.TaskProgress.IsValidIndex(i))
+				{
+					int32 Current = ActiveQuest.TaskProgress[i];
+					int32 Target = CurrentObjective.Tasks[i]->TargetCount;
+					if (Current < Target)
+					{
+						bObjectiveComplete = false;
+						break;
+					}
+				}
+			}
+			
+			if (bObjectiveComplete)
 			{
 				UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Objective complete! Moving to next objective"));
 				ActiveQuest.CurrentObjectiveIndex++;
+
+				// Initialize TaskProgress for new objective
+				if (ActiveQuest.CurrentObjectiveIndex < ActiveQuest.QuestDefinition->Objectives.Num())
+				{
+					const FQuestObjective& NextObjective = ActiveQuest.QuestDefinition->Objectives[ActiveQuest.CurrentObjectiveIndex];
+					ActiveQuest.TaskProgress.SetNum(NextObjective.Tasks.Num());
+					
+					for (int32 i = 0; i < NextObjective.Tasks.Num(); ++i)
+					{
+						ActiveQuest.TaskProgress[i] = 0;
+					}
+					
+					UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Initialized %d tasks for next objective"),
+						ActiveQuest.TaskProgress.Num());
+				}
 
 				if (ActiveQuest.CurrentObjectiveIndex >= ActiveQuest.QuestDefinition->Objectives.Num())
 				{
@@ -259,6 +289,21 @@ void UQuestSubSystem::AcceptQuest(UQuestDefinition* Quest)
 	NewQuest.State = EQuestState::Active;
 	NewQuest.CurrentObjectiveIndex = 0;
 	NewQuest.AcceptedTime = FDateTime::Now();
+
+	// Initialize TaskProgress array for first objective
+	if (Quest->Objectives.Num() > 0)
+	{
+		const FQuestObjective& FirstObjective = Quest->Objectives[0];
+		NewQuest.TaskProgress.SetNum(FirstObjective.Tasks.Num());
+		
+		for (int32 i = 0; i < FirstObjective.Tasks.Num(); ++i)
+		{
+			NewQuest.TaskProgress[i] = 0;  // Start all tasks at 0
+		}
+		
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Initialized %d task progress counters"), 
+			NewQuest.TaskProgress.Num());
+	}
 
 	UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Adding quest to ActiveQuests map"));
 	ActiveQuests.Add(Quest->QuestID, NewQuest);
@@ -367,6 +412,11 @@ bool UQuestSubSystem::IsQuestActive(FName QuestID) const
 	return ActiveQuest && ActiveQuest->State == EQuestState::Active;
 }
 
+bool UQuestSubSystem::IsQuestCompleted(FName QuestID) const
+{
+	return CompletedQuests.Contains(QuestID);
+}
+
 FActiveQuest* UQuestSubSystem::FindActiveQuest(FName QuestID)
 {
 	return ActiveQuests.Find(QuestID);
@@ -407,23 +457,46 @@ void UQuestSubSystem::LoadQuestProgress(FName QuestID, uint8 State, int32 Curren
 	NewActiveQuest.CurrentObjectiveIndex = CurrentObjectiveIndex;
 	NewActiveQuest.AcceptedTime = AcceptedTime;
 
-	// Restore task progress
-	if (CurrentObjectiveIndex < QuestDef->Objectives.Num())
-	{
-		FQuestObjective& Objective = QuestDef->Objectives[CurrentObjectiveIndex];
-		for (int32 i = 0; i < Objective.Tasks.Num() && i < TaskProgress.Num(); ++i)
-		{
-			if (UQuestTask* Task = Objective.Tasks[i])
-			{
-				Task->CurrentCount = TaskProgress[i];
-				UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Restored task progress: %d/%d"),
-					Task->CurrentCount, Task->TargetCount);
-			}
-		}
-	}
+	// Restore task progress - simply copy the array
+	NewActiveQuest.TaskProgress = TaskProgress;
+	
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Restored %d task progress values"),
+		NewActiveQuest.TaskProgress.Num());
 
 	// Add to active quests
 	ActiveQuests.Add(QuestID, NewActiveQuest);
 	UE_LOG(LogTemp, Display, TEXT(">>> QUEST SUBSYSTEM: Quest progress loaded: %s"), *QuestID.ToString());
+}
+
+int32 UQuestSubSystem::GetTaskProgress(FName QuestID, int32 TaskIndex) const
+{
+	const FActiveQuest* Quest = ActiveQuests.Find(QuestID);
+	if (Quest && Quest->TaskProgress.IsValidIndex(TaskIndex))
+	{
+		return Quest->TaskProgress[TaskIndex];
+	}
+	return 0;
+}
+
+int32 UQuestSubSystem::GetTaskTarget(FName QuestID, int32 TaskIndex) const
+{
+	const FActiveQuest* Quest = ActiveQuests.Find(QuestID);
+	if (Quest && Quest->QuestDefinition)
+	{
+		if (Quest->CurrentObjectiveIndex < Quest->QuestDefinition->Objectives.Num())
+		{
+			const FQuestObjective& Obj = Quest->QuestDefinition->Objectives[Quest->CurrentObjectiveIndex];
+			if (Obj.Tasks.IsValidIndex(TaskIndex))
+			{
+				return Obj.Tasks[TaskIndex]->TargetCount;
+			}
+		}
+	}
+	return 0;
+}
+
+bool UQuestSubSystem::IsTaskComplete(FName QuestID, int32 TaskIndex) const
+{
+	return GetTaskProgress(QuestID, TaskIndex) >= GetTaskTarget(QuestID, TaskIndex);
 }
 

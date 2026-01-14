@@ -142,7 +142,6 @@ UQuestDefinition* UQuestGeneratorWidget::CreateTestQuest(int32 QuestIndex)
 				KillTask->TaskID = FName(*FString::Printf(TEXT("%s_Kill"), *QuestIDStr));
 				KillTask->TaskDescription = FText::FromString(TEXT("Defeat enemies"));
 				KillTask->TargetCount = 5 + (QuestIndex * 2);
-				KillTask->CurrentCount = 0;
 				KillTask->EnemyTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Enemy.Hostile")));
 				Objective.Tasks.Add(KillTask);
 				Objective.ObjectiveDescription = FText::FromString(FString::Printf(TEXT("Defeat %d enemies"), KillTask->TargetCount));
@@ -155,7 +154,6 @@ UQuestDefinition* UQuestGeneratorWidget::CreateTestQuest(int32 QuestIndex)
 				CollectTask->TaskID = FName(*FString::Printf(TEXT("%s_Collect"), *QuestIDStr));
 				CollectTask->TaskDescription = FText::FromString(TEXT("Collect items"));
 				CollectTask->TargetCount = 3 + QuestIndex;
-				CollectTask->CurrentCount = 0;
 				CollectTask->ItemID = FName(TEXT("Item.QuestItem"));
 				Objective.Tasks.Add(CollectTask);
 				Objective.ObjectiveDescription = FText::FromString(FString::Printf(TEXT("Collect %d items"), CollectTask->TargetCount));
@@ -168,7 +166,6 @@ UQuestDefinition* UQuestGeneratorWidget::CreateTestQuest(int32 QuestIndex)
 				InteractTask->TaskID = FName(*FString::Printf(TEXT("%s_Interact"), *QuestIDStr));
 				InteractTask->TaskDescription = FText::FromString(TEXT("Interact with objects"));
 				InteractTask->TargetCount = 1;
-				InteractTask->CurrentCount = 0;
 				Objective.Tasks.Add(InteractTask);
 				Objective.ObjectiveDescription = FText::FromString(TEXT("Interact with the quest object"));
 			}
@@ -180,7 +177,6 @@ UQuestDefinition* UQuestGeneratorWidget::CreateTestQuest(int32 QuestIndex)
 				LocationTask->TaskID = FName(*FString::Printf(TEXT("%s_Location"), *QuestIDStr));
 				LocationTask->TaskDescription = FText::FromString(TEXT("Reach the destination"));
 				LocationTask->TargetCount = 1;
-				LocationTask->CurrentCount = 0;
 				LocationTask->TargetLocation = FVector(1000.0f * QuestIndex, 0.0f, 100.0f);
 				LocationTask->AcceptanceRadius = 500.0f;
 				Objective.Tasks.Add(LocationTask);

@@ -224,23 +224,39 @@ void ABasePlayerCharacter::DoAim(float Yaw, float Pitch)
 
 void ABasePlayerCharacter::DoMove(float Right, float Forward)
 {
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoMove called - Right=%.2f, Forward=%.2f"), Right, Forward);
+	
 	if (GetController() && !IsDead())
 	{
 		AddMovementInput(GetActorRightVector(), Right);
 		AddMovementInput(GetActorForwardVector(), Forward);
 	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: DoMove blocked - Controller=%s, IsDead=%s"),
+			GetController() ? TEXT("Valid") : TEXT("NULL"),
+			IsDead() ? TEXT("true") : TEXT("false"));
+	}
 }
 
 void ABasePlayerCharacter::DoJumpStart()
 {
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoJumpStart called"));
+	
 	if (!IsDead())
 	{
 		Jump();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: Jump blocked - IsDead=true"));
 	}
 }
 
 void ABasePlayerCharacter::DoJumpEnd()
 {
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoJumpEnd called"));
+	
 	if (!IsDead())
 	{
 		StopJumping();
@@ -249,14 +265,24 @@ void ABasePlayerCharacter::DoJumpEnd()
 
 void ABasePlayerCharacter::DoStartFiring()
 {
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoStartFiring called"));
+	
 	if (WeaponComponent && !IsDead())
 	{
 		WeaponComponent->StartFiring();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: Fire blocked - WeaponComponent=%s, IsDead=%s"),
+			WeaponComponent ? TEXT("Valid") : TEXT("NULL"),
+			IsDead() ? TEXT("true") : TEXT("false"));
 	}
 }
 
 void ABasePlayerCharacter::DoStopFiring()
 {
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoStopFiring called"));
+	
 	if (WeaponComponent && !IsDead())
 	{
 		WeaponComponent->StopFiring();
@@ -265,14 +291,24 @@ void ABasePlayerCharacter::DoStopFiring()
 
 void ABasePlayerCharacter::DoSwitchWeapon()
 {
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoSwitchWeapon called"));
+	
 	if (WeaponComponent && !IsDead())
 	{
 		WeaponComponent->SwitchWeapon();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: Switch weapon blocked - WeaponComponent=%s, IsDead=%s"),
+			WeaponComponent ? TEXT("Valid") : TEXT("NULL"),
+			IsDead() ? TEXT("true") : TEXT("false"));
 	}
 }
 
 void ABasePlayerCharacter::DoStartSprint()
 {
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoStartSprint called"));
+	
 	bSprinting = true;
 
 	if (!bRecovering)
@@ -280,10 +316,16 @@ void ABasePlayerCharacter::DoStartSprint()
 		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 		OnSprintStateChanged.Broadcast(true);
 	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: Sprint blocked - bRecovering=true"));
+	}
 }
 
 void ABasePlayerCharacter::DoEndSprint()
 {
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoEndSprint called"));
+	
 	bSprinting = false;
 
 	if (!bRecovering)

@@ -5,48 +5,41 @@
 
 UQuestTask::UQuestTask()
 {
-	CurrentCount = 0;
 	TargetCount = 1;
 	bIsMandatory = true;
 }
 
 void UQuestTask::OnTaskStarted()
 {
-	CurrentCount = 0;
+	// Task started - progress tracked in FActiveQuest.TaskProgress
 }
 
 void UQuestTask::UpdateProgress(int32 Amount)
 {
-	CurrentCount = FMath::Clamp(CurrentCount + Amount, 0, TargetCount);
+	// DEPRECATED: Progress now tracked in FActiveQuest.TaskProgress
+	// Use QuestSubsystem::UpdateTaskProgress() instead
+	UE_LOG(LogTemp, Warning, TEXT("QuestTask::UpdateProgress is deprecated - use QuestSubsystem"));
 }
 
 bool UQuestTask::IsComplete() const
 {
-	return CurrentCount >= TargetCount;
+	// DEPRECATED: Use QuestSubsystem::IsTaskComplete() instead
+	UE_LOG(LogTemp, Warning, TEXT("QuestTask::IsComplete is deprecated - use QuestSubsystem"));
+	return false;
 }
 
 float UQuestTask::GetProgressPercent() const
 {
-	if (TargetCount <= 0)
-	{
-		return 0.0f;
-	}
-	return static_cast<float>(CurrentCount) / static_cast<float>(TargetCount);
+	// DEPRECATED: Cannot determine progress without FActiveQuest context
+	// Use QuestSubsystem::GetTaskProgress() instead
+	return 0.0f;
 }
 
 FText UQuestTask::GetProgressText(bool bShowPercentage) const
 {
-	if (bShowPercentage)
-	{
-		int32 Percentage = FMath::RoundToInt(GetProgressPercent() * 100.0f);
-		return FText::Format(FText::FromString("{0}%"), FText::AsNumber(Percentage));
-	}
-	else
-	{
-		return FText::Format(FText::FromString("{0}/{1}"), 
-			FText::AsNumber(CurrentCount), 
-			FText::AsNumber(TargetCount));
-	}
+	// DEPRECATED: Cannot determine progress without FActiveQuest context
+	// Use QuestSubsystem::GetTaskProgress() instead
+	return FText::FromString(TEXT("0/0"));
 }
 
 FText UQuestTask::GetTaskTypeName() const

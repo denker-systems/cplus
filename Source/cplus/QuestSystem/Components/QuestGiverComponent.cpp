@@ -85,21 +85,38 @@ TArray<UQuestDefinition*> UQuestGiverComponent::GetAvailableQuests(AActor* Playe
 	UE_LOG(LogTemp, Display, TEXT(">>> GET AVAILABLE QUESTS: Owner = %s"), GetOwner() ? *GetOwner()->GetName() : TEXT("NULL"));
 	UE_LOG(LogTemp, Display, TEXT(">>> GET AVAILABLE QUESTS: AvailableQuests.Num() = %d"), AvailableQuests.Num());
 	
+	// Get QuestSubsystem to check quest status
+	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+	UQuestSubSystem* QuestSub = GameInstance ? GameInstance->GetSubsystem<UQuestSubSystem>() : nullptr;
+	
 	TArray<UQuestDefinition*> Result;
 	for (int32 i = 0; i < AvailableQuests.Num(); i++)
 	{
 		UQuestDefinition* Quest = AvailableQuests[i];
 		UE_LOG(LogTemp, Display, TEXT(">>> GET AVAILABLE QUESTS: Quest[%d] = %p"), i, Quest);
 		
-		if (Quest)
-		{
-			UE_LOG(LogTemp, Display, TEXT(">>> GET AVAILABLE QUESTS: Adding quest: %s"), *Quest->QuestID.ToString());
-			Result.Add(Quest);
-		}
-		else
+		if (!Quest)
 		{
 			UE_LOG(LogTemp, Warning, TEXT(">>> GET AVAILABLE QUESTS: Quest[%d] is NULL!"), i);
+			continue;
 		}
+		
+		// Skip if quest is already completed (turned in)
+		if (QuestSub && QuestSub->IsQuestCompleted(Quest->QuestID))
+		{
+			UE_LOG(LogTemp, Display, TEXT(">>> GET AVAILABLE QUESTS: Skipping completed quest: %s"), *Quest->QuestID.ToString());
+			continue;
+		}
+		
+		// Skip if quest is already active
+		if (QuestSub && QuestSub->IsQuestActive(Quest->QuestID))
+		{
+			UE_LOG(LogTemp, Display, TEXT(">>> GET AVAILABLE QUESTS: Skipping active quest: %s"), *Quest->QuestID.ToString());
+			continue;
+		}
+		
+		UE_LOG(LogTemp, Display, TEXT(">>> GET AVAILABLE QUESTS: Adding quest: %s"), *Quest->QuestID.ToString());
+		Result.Add(Quest);
 	}
 	
 	UE_LOG(LogTemp, Display, TEXT(">>> GET AVAILABLE QUESTS: Returning %d quest(s)"), Result.Num());

@@ -86,15 +86,6 @@ void UPauseMenuWidget::CreateMenuButtons()
 		UE_LOG(LogTemp, Display, TEXT(">>> PAUSE MENU: Main Menu button created"));
 	}
 	
-	// Create Reset button
-	UButton* ResetButton = CreateMenuButton(FText::FromString(TEXT("Reset Game")), FName("OnResetClicked"));
-	if (ResetButton)
-	{
-		ResetButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnResetClicked);
-		CreatedButtons.Add(ResetButton);
-		UE_LOG(LogTemp, Display, TEXT(">>> PAUSE MENU: Reset button created"));
-	}
-	
 	// Create Quit button
 	UButton* QuitButton = CreateMenuButton(FText::FromString(TEXT("Quit Game")), FName("OnQuitClicked"));
 	if (QuitButton)
@@ -305,39 +296,6 @@ void UPauseMenuWidget::OnMainMenuClicked()
 	{
 		UE_LOG(LogTemp, Error, TEXT(">>> PAUSE MENU: No GameMode found"));
 	}
-}
-
-void UPauseMenuWidget::OnResetClicked()
-{
-	UE_LOG(LogTemp, Display, TEXT(">>> PAUSE MENU: Reset button clicked"));
-	
-	// Get QuestSubsystem and reset all quests
-	if (UGameInstance* GameInstance = GetGameInstance())
-	{
-		if (UQuestSubSystem* QuestSub = GameInstance->GetSubsystem<UQuestSubSystem>())
-		{
-			QuestSub->ResetAllQuests();
-			UE_LOG(LogTemp, Display, TEXT(">>> PAUSE MENU: All quests reset"));
-		}
-	}
-	
-	// IMPORTANT: Reset input mode to Game before reload
-	if (APlayerController* PC = GetOwningPlayer())
-	{
-		FInputModeGameOnly InputMode;
-		PC->SetInputMode(InputMode);
-		PC->SetShowMouseCursor(false);
-		UE_LOG(LogTemp, Display, TEXT(">>> PAUSE MENU: Input mode reset to Game"));
-	}
-	
-	// IMPORTANT: Unpause game before reloading level
-	UGameplayStatics::SetGamePaused(GetWorld(), false);
-	UE_LOG(LogTemp, Display, TEXT(">>> PAUSE MENU: Game unpaused before reload"));
-	
-	// Reload current level
-	UGameplayStatics::OpenLevel(GetWorld(), FName(*UGameplayStatics::GetCurrentLevelName(GetWorld())));
-	
-	UE_LOG(LogTemp, Display, TEXT(">>> PAUSE MENU: Level reloading..."));
 }
 
 void UPauseMenuWidget::OnQuitClicked()

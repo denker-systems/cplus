@@ -101,6 +101,12 @@ public:
 	bool IsQuestActive(FName QuestID) const;
 
 	/**
+	 * Check if quest has been completed and turned in
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Quest")
+	bool IsQuestCompleted(FName QuestID) const;
+
+	/**
 	 * Reset all quest progress (for game restart/debug)
 	 * Clears all active quests and resets all task progress
 	 */
@@ -128,6 +134,33 @@ public:
 
 	FActiveQuest* FindActiveQuest(FName QuestID);
 
+	/**
+	 * Get task progress for active quest
+	 * @param QuestID Quest identifier
+	 * @param TaskIndex Task index in current objective
+	 * @return Current progress count
+	 */
+	UFUNCTION(BlueprintPure, Category = "Quest|Progress")
+	int32 GetTaskProgress(FName QuestID, int32 TaskIndex) const;
+
+	/**
+	 * Get task target count from definition
+	 * @param QuestID Quest identifier
+	 * @param TaskIndex Task index in current objective
+	 * @return Target count
+	 */
+	UFUNCTION(BlueprintPure, Category = "Quest|Progress")
+	int32 GetTaskTarget(FName QuestID, int32 TaskIndex) const;
+
+	/**
+	 * Check if task is complete
+	 * @param QuestID Quest identifier
+	 * @param TaskIndex Task index in current objective
+	 * @return True if task progress >= target
+	 */
+	UFUNCTION(BlueprintPure, Category = "Quest|Progress")
+	bool IsTaskComplete(FName QuestID, int32 TaskIndex) const;
+
 protected:
 	/**
 	 * Process quest event for a specific quest
@@ -137,4 +170,8 @@ protected:
 
 	UPROPERTY()
 	TMap<FName, FActiveQuest> ActiveQuests;
+
+	/** Quests that have been completed and turned in (prevents re-offering) */
+	UPROPERTY()
+	TSet<FName> CompletedQuests;
 };

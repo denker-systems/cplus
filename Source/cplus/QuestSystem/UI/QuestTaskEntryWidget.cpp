@@ -52,19 +52,9 @@ void UQuestTaskEntryWidget::RefreshTask()
 		ProgressBar->SetPercent(Percent);
 
 		// Color based on completion
-		FLinearColor BarColor;
-		if (CurrentTask->IsComplete())
-		{
-			BarColor = FLinearColor(0.0f, 1.0f, 0.0f, 1.0f); // Green
-		}
-		else if (CurrentTask->CurrentCount > 0)
-		{
-			BarColor = FLinearColor(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
-		}
-		else
-		{
-			BarColor = FLinearColor(0.5f, 0.5f, 0.5f, 1.0f); // Gray
-		}
+		// DEPRECATED: Cannot determine progress without quest context
+		// Default to gray color
+		FLinearColor BarColor = FLinearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		ProgressBar->SetFillColorAndOpacity(BarColor);
 	}
 

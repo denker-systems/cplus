@@ -25,9 +25,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	int32 TargetCount = 1;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Quest")
-	int32 CurrentCount = 0;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	bool bIsMandatory = true;
 

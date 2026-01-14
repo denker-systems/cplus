@@ -273,18 +273,8 @@ void USaveGameSubsystem::CollectSaveData(UGameSaveData* SaveData)
 			QuestSave.CurrentObjectiveIndex = ActiveQuest.CurrentObjectiveIndex;
 			QuestSave.AcceptedTime = ActiveQuest.AcceptedTime;
 
-			// Save task progress
-			if (ActiveQuest.CurrentObjectiveIndex < ActiveQuest.QuestDefinition->Objectives.Num())
-			{
-				const FQuestObjective& Objective = ActiveQuest.QuestDefinition->Objectives[ActiveQuest.CurrentObjectiveIndex];
-				for (UQuestTask* Task : Objective.Tasks)
-				{
-					if (Task)
-					{
-						QuestSave.TaskProgress.Add(Task->CurrentCount);
-					}
-				}
-			}
+			// Save task progress from FActiveQuest.TaskProgress array
+			QuestSave.TaskProgress = ActiveQuest.TaskProgress;
 
 			SaveData->ActiveQuests.Add(QuestSave);
 		}
@@ -479,6 +469,13 @@ void USaveGameSubsystem::ResetGameState()
 		if (UInventoryComponent* Inventory = Player->GetInventory())
 		{
 			Inventory->Items.Empty();
+		}
+		
+		// Reset health to full
+		if (UHealthComponent* Health = Player->GetHealthComponent())
+		{
+			Health->ResetHealth();
+			UE_LOG(LogTemp, Display, TEXT("Player health reset to full"));
 		}
 	}
 

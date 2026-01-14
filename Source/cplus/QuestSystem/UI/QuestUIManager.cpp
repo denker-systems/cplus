@@ -242,14 +242,17 @@ void UQuestUIManager::ShowObjectiveUpdatedNotification(FName QuestID, int32 Obje
 		return;
 	}
 
-	// Get task progress
+	// Get task progress from QuestSubsystem
+	int32 CurrentCount = QuestSubsystem->GetTaskProgress(QuestID, TaskIndex);
+	
 	const FQuestObjective& Objective = Quest->Objectives[ObjectiveIndex];
 	if (Objective.Tasks.IsValidIndex(TaskIndex))
 	{
 		UQuestTask* Task = Objective.Tasks[TaskIndex];
 		if (Task)
 		{
-			NotificationWidget->ShowObjectiveUpdated(Quest, ObjectiveIndex, Task->CurrentCount, Task->TargetCount);
+			int32 TargetCount = Task->TargetCount;
+			NotificationWidget->ShowObjectiveUpdated(Quest, ObjectiveIndex, CurrentCount, TargetCount);
 		}
 	}
 }

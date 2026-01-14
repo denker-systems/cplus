@@ -73,21 +73,10 @@ FLinearColor UQuestProgressWidget::GetTaskColor(UQuestTask* Task)
 		return FLinearColor::White;
 	}
 
-	if (Task->IsComplete())
-	{
-		// Green for completed
-		return FLinearColor(0.0f, 1.0f, 0.0f, 1.0f);
-	}
-	else if (Task->CurrentCount > 0)
-	{
-		// Yellow for in progress
-		return FLinearColor(1.0f, 1.0f, 0.0f, 1.0f);
-	}
-	else
-	{
-		// White for not started
-		return FLinearColor::White;
-	}
+	// DEPRECATED: Cannot determine progress without quest context
+	// Use QuestSubsystem::GetTaskProgress() instead
+	// Return white as default
+	return FLinearColor::White;
 }
 
 FText UQuestProgressWidget::GetTaskTypeIcon(UQuestTask* Task)
