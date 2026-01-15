@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-01-15 Quest System)
+- **QuestInteractableObject ItemID support** - Added ItemID property for Collect task compatibility
+- **QuestTriggerVolume LocationTag** - Added GameplayTag support for Location quest tasks
+- **Quest system tag-based matching** - All three quest task types (Collect, Interact, Location) now working
+- **BP_QuestInteractable** - Blueprint for interactable quest objects with tag support
+- **BP_QuestLocation** - Blueprint for location-based quest triggers
+
+### Fixed (2026-01-15 Quest System)
+- **Quest task matching logic** - Clarified Collect tasks match without tags, Interact/Location require tags
+- **QuestInteractableObject quest integration** - Now correctly notifies QuestSubsystem with tags
+- **QuestTriggerVolume quest integration** - Now notifies QuestSubsystem when player enters area
+
 ### Added (2026-01-14 Late Evening)
 - **Sprint input system** - Hold Shift to sprint (Started/Triggered/Completed/Canceled bindings)
 - **Crouch input system** - Hold Ctrl to crouch with DoStartCrouch/DoEndCrouch handlers
