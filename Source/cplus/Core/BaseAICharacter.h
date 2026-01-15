@@ -104,6 +104,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Identity")
 	FName NPCID;
 
+	// === ANIMATION ===
+
+	/** Unarmed animation blueprint class (when no weapon equipped) */
+	UPROPERTY(EditAnywhere, Category = "AI|Animation")
+	TSubclassOf<UAnimInstance> UnarmedAnimInstanceClass;
+
 	// === SHOOTER FEATURES ===
 
 	/** Name of the first person mesh weapon socket */

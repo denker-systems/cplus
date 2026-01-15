@@ -57,6 +57,7 @@ public class cplus : ModuleRules
 			"cplus/CombatSystem/Core",
 			"cplus/CombatSystem/Animation",
 			"cplus/CombatSystem/Interfaces",
+			"cplus/AISystem",
 			"cplus/SaveSystem"
 		});
 

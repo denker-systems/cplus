@@ -77,6 +77,13 @@ void ABaseAICharacter::BeginPlay()
 	// Enable tick for text rotation
 	PrimaryActorTick.bCanEverTick = true;
 
+	// Log weapon status
+	if (WeaponComponent && WeaponComponent->GetCurrentWeapon())
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> AI INIT: [%s] Weapon equipped: %s"), 
+			*GetName(), *WeaponComponent->GetCurrentWeapon()->GetName());
+	}
+
 	// Bind to health component death event
 	if (HealthComponent)
 	{
@@ -272,12 +279,42 @@ void ABaseAICharacter::AddWeaponClass(const TSubclassOf<ABaseWeapon>& WeaponClas
 
 void ABaseAICharacter::OnWeaponActivated(ABaseWeapon* Weapon)
 {
-	// Unused for AI
+	if (!Weapon)
+	{
+		return;
+	}
+
+	// Set the character mesh AnimInstance (third-person)
+	if (!GetMesh())
+	{
+		return;
+	}
+
+	const TSubclassOf<UAnimInstance> WeaponAnimClass = Weapon->GetThirdPersonAnimInstanceClass();
+	if (WeaponAnimClass)
+	{
+		GetMesh()->SetAnimInstanceClass(WeaponAnimClass);
+		UE_LOG(LogTemp, Display, TEXT(">>> AI ANIM: [%s] Switched to weapon ABP: %s"), 
+			*GetName(), *WeaponAnimClass->GetName());
+		return;
+	}
+
+	// Fallback to unarmed if weapon has no ABP
+	UE_LOG(LogTemp, Warning, TEXT(">>> AI ANIM: [%s] Weapon has no ThirdPersonAnimInstanceClass - falling back to unarmed"), *GetName());
+	if (UnarmedAnimInstanceClass)
+	{
+		GetMesh()->SetAnimInstanceClass(UnarmedAnimInstanceClass);
+	}
 }
 
 void ABaseAICharacter::OnWeaponDeactivated(ABaseWeapon* Weapon)
 {
-	// Unused for AI
+	// Reset to unarmed animation
+	if (UnarmedAnimInstanceClass && GetMesh())
+	{
+		GetMesh()->SetAnimInstanceClass(UnarmedAnimInstanceClass);
+		UE_LOG(LogTemp, Display, TEXT(">>> AI ANIM: [%s] Switched to unarmed ABP"), *GetName());
+	}
 }
 
 void ABaseAICharacter::OnSemiWeaponRefire()
@@ -303,7 +340,12 @@ void ABaseAICharacter::StartShooting(AActor* ActorToShoot)
 	// Signal the weapon
 	if (WeaponComponent)
 	{
+		UE_LOG(LogTemp, Display, TEXT(">>> AI COMBAT: [%s] StartShooting - calling WeaponComponent->StartFiring()"), *GetName());
 		WeaponComponent->StartFiring();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> AI COMBAT: [%s] StartShooting - NO WeaponComponent!"), *GetName());
 	}
 }
 

@@ -12,6 +12,7 @@
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "DrawDebugHelpers.h"
 
 ABaseProjectile::ABaseProjectile()
 {
@@ -42,6 +43,9 @@ void ABaseProjectile::BeginPlay()
 	
 	// ignore the pawn that shot this projectile
 	CollisionComponent->IgnoreActorWhenMoving(GetInstigator(), true);
+
+	// Store initial location for trajectory drawing
+	PreviousLocation = GetActorLocation();
 }
 
 void ABaseProjectile::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -61,6 +65,27 @@ void ABaseProjectile::NotifyHit(class UPrimitiveComponent* MyComp, AActor* Other
 	}
 
 	bHit = true;
+
+	// Debug visualization
+	if (bShowDebugProjectile)
+	{
+		// Draw hit point (red sphere)
+		DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 10.0f, 12, FColor::Red, false, DebugLineDuration, 0, DebugLineThickness);
+		
+		// Draw hit normal (blue arrow)
+		DrawDebugDirectionalArrow(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + (Hit.ImpactNormal * 50.0f), 20.0f, FColor::Blue, false, DebugLineDuration, 0, DebugLineThickness);
+		
+		// Draw explosion radius if applicable
+		if (bExplodeOnHit)
+		{
+			DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadius, 16, FColor::Orange, false, DebugLineDuration, 0, DebugLineThickness * 0.5f);
+		}
+		
+		UE_LOG(LogTemp, Display, TEXT(">>> PROJECTILE DEBUG: Hit - Location: %s, Normal: %s, Actor: %s"), 
+			*Hit.ImpactPoint.ToString(), 
+			*Hit.ImpactNormal.ToString(), 
+			Other ? *Other->GetName() : TEXT("None"));
+	}
 
 	// disable collision on the projectile
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -132,10 +157,22 @@ void ABaseProjectile::ExplosionCheck(const FVector& ExplosionCenter)
 			// apply physics force away from the explosion
 			const FVector& ExplosionDir = CurrentOverlap.GetActor()->GetActorLocation() - GetActorLocation();
 
+			// Debug visualization for explosion hits
+			if (bShowDebugProjectile)
+			{
+				DrawDebugLine(GetWorld(), ExplosionCenter, CurrentOverlap.GetActor()->GetActorLocation(), FColor::Yellow, false, DebugLineDuration, 0, DebugLineThickness * 0.5f);
+			}
+
 			// push and/or damage the overlapped actor
 			ProcessHit(CurrentOverlap.GetActor(), CurrentOverlap.GetComponent(), GetActorLocation(), ExplosionDir.GetSafeNormal());
 		}
 			
+	}
+	
+	if (bShowDebugProjectile)
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> PROJECTILE DEBUG: Explosion - Center: %s, Radius: %.1f, Actors Hit: %d"), 
+			*ExplosionCenter.ToString(), ExplosionRadius, DamagedActors.Num());
 	}
 }
 

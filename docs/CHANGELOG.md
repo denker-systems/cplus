@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-01-15 Combat System)
+- **CombatComponent** - Melee combat manager with combo chains, hit detection, and state management
+- **AnimNotifyState_MeleeCollision** - Sphere trace collision detection during attack animations
+- **CombatComboData** - DataAsset for configurable combo attack chains
+- **CombatTypes.h** - Enums (ECombatState, EAttackType, EHitReaction, EMeleeCollisionType) and structs
+- **ICombatInterface** - Interface for damageable actors with TakeCombatDamage and hit reactions
+- **Smart input routing** - Left Mouse Button auto-detects armed/unarmed state (Fire weapon vs Melee attack)
+- **DoLightAttack/DoHeavyAttack** - Input handlers for melee combat in BasePlayerCharacter
+- **CombatComponent integration** - Added to BasePlayerCharacter and BaseAICharacter
+- **DA_UnarmedCombo** - Example combo DataAsset with 4-attack chain
+- **Animation montages** - MM_Attack_01-03, MM_ChargedAttack for unarmed combat
+- **IA_LightAttack/IA_HeavyAttack** - Input actions for combat
+- **Debug logging** - Comprehensive combat system debugging (StartAttack, combo windows, progression)
+
+### Changed (2026-01-15 Combat System)
+- **BasePlayerCharacter::DoStartFiring()** - Now routes to CombatComponent when unarmed
+- **BasePlayerCharacter::DoStopFiring()** - Only stops weapon firing, not melee attacks
+- **cplus.Build.cs** - Added CombatSystem include paths (Core, Animation, Interfaces)
+
 ### Added (2026-01-15 Inventory Integration)
 - **EquipmentComponent** - Armor slot system (Head, Chest, Legs, Hands, Feet, Accessories)
 - **ShopComponent** - NPC trading system with buy/sell functionality and price modifiers

@@ -12,6 +12,7 @@
 #include "Animation/AnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Pawn.h"
+#include "DrawDebugHelpers.h"
 
 ABaseWeapon::ABaseWeapon()
 {
@@ -182,6 +183,55 @@ void ABaseWeapon::FireProjectile(const FVector& TargetLocation)
 	// get the projectile transform
 	FTransform ProjectileTransform = CalculateProjectileSpawnTransform(TargetLocation);
 	
+	// Debug visualization
+	if (bShowDebugWeapon)
+	{
+		// Get muzzle location for debug (same logic as CalculateProjectileSpawnTransform)
+		FVector MuzzleLoc;
+		FString UsedMesh = "None";
+		
+		if (FirstPersonMesh && FirstPersonMesh->DoesSocketExist(MuzzleSocketName))
+		{
+			MuzzleLoc = FirstPersonMesh->GetSocketLocation(MuzzleSocketName);
+			UsedMesh = "FirstPerson";
+		}
+		else if (ThirdPersonMesh && ThirdPersonMesh->DoesSocketExist(MuzzleSocketName))
+		{
+			MuzzleLoc = ThirdPersonMesh->GetSocketLocation(MuzzleSocketName);
+			UsedMesh = "ThirdPerson";
+		}
+		else
+		{
+			MuzzleLoc = GetActorLocation();
+			UsedMesh = "WeaponRoot (SOCKET NOT FOUND!)";
+		}
+		
+		const FVector SpawnLoc = ProjectileTransform.GetLocation();
+		const FVector AimDir = ProjectileTransform.GetRotation().GetForwardVector();
+		
+		// Draw muzzle socket (yellow sphere)
+		DrawDebugSphere(GetWorld(), MuzzleLoc, 5.0f, 8, FColor::Yellow, false, DebugLineDuration, 0, DebugLineThickness);
+		
+		// Draw spawn point (green sphere)
+		DrawDebugSphere(GetWorld(), SpawnLoc, 8.0f, 8, FColor::Green, false, DebugLineDuration, 0, DebugLineThickness);
+		
+		// Draw aim direction (cyan line to target)
+		DrawDebugLine(GetWorld(), SpawnLoc, TargetLocation, FColor::Cyan, false, DebugLineDuration, 0, DebugLineThickness);
+		
+		// Draw actual projectile direction (orange line)
+		const FVector ProjectileEnd = SpawnLoc + (AimDir * 5000.0f);
+		DrawDebugLine(GetWorld(), SpawnLoc, ProjectileEnd, FColor::Orange, false, DebugLineDuration, 0, DebugLineThickness);
+		
+		// Draw aim variance cone (if any)
+		if (AimVariance > 0.0f)
+		{
+			DrawDebugCone(GetWorld(), SpawnLoc, AimDir, 1000.0f, FMath::DegreesToRadians(AimVariance), FMath::DegreesToRadians(AimVariance), 16, FColor::Red, false, DebugLineDuration, 0, DebugLineThickness * 0.5f);
+		}
+		
+		UE_LOG(LogTemp, Display, TEXT(">>> WEAPON DEBUG: Fire - Mesh: %s, Socket: %s, Muzzle: %s, Spawn: %s"), 
+			*UsedMesh, *MuzzleSocketName.ToString(), *MuzzleLoc.ToString(), *SpawnLoc.ToString());
+	}
+	
 	// spawn the projectile
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -212,8 +262,34 @@ void ABaseWeapon::FireProjectile(const FVector& TargetLocation)
 
 FTransform ABaseWeapon::CalculateProjectileSpawnTransform(const FVector& TargetLocation) const
 {
-	// find the muzzle location
-	const FVector MuzzleLoc = FirstPersonMesh->GetSocketLocation(MuzzleSocketName);
+	// Try to find the muzzle socket location
+	FVector MuzzleLoc;
+	
+	// Check if socket exists on FirstPersonMesh
+	if (FirstPersonMesh && FirstPersonMesh->DoesSocketExist(MuzzleSocketName))
+	{
+		MuzzleLoc = FirstPersonMesh->GetSocketLocation(MuzzleSocketName);
+	}
+	// Fallback to ThirdPersonMesh if FirstPerson socket doesn't exist
+	else if (ThirdPersonMesh && ThirdPersonMesh->DoesSocketExist(MuzzleSocketName))
+	{
+		MuzzleLoc = ThirdPersonMesh->GetSocketLocation(MuzzleSocketName);
+		if (bShowDebugWeapon)
+		{
+			UE_LOG(LogTemp, Warning, TEXT(">>> WEAPON DEBUG: Using ThirdPersonMesh socket (FirstPerson socket not found)"));
+		}
+	}
+	// Last resort: use weapon forward + offset (approximates muzzle)
+	else
+	{
+		// Calculate muzzle position from weapon's forward direction
+		// This works even without a socket - assumes barrel points forward
+		MuzzleLoc = GetActorLocation() + (GetActorForwardVector() * 50.0f) + FVector(0, 0, 10.0f);
+		if (bShowDebugWeapon)
+		{
+			UE_LOG(LogTemp, Warning, TEXT(">>> WEAPON DEBUG: MuzzleSocketName '%s' not found! Using calculated muzzle position. Consider adding socket to weapon mesh."), *MuzzleSocketName.ToString());
+		}
+	}
 
 	// calculate the spawn location ahead of the muzzle
 	const FVector SpawnLoc = MuzzleLoc + ((TargetLocation - MuzzleLoc).GetSafeNormal() * MuzzleOffset);

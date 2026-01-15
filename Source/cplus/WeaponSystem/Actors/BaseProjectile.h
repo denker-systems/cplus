@@ -77,6 +77,21 @@ protected:
 	/** Timer to handle deferred destruction of this projectile */
 	FTimerHandle DestructionTimer;
 
+	/** Enable debug visualization for projectile trajectory */
+	UPROPERTY(EditAnywhere, Category="Debug")
+	bool bShowDebugProjectile = false;
+
+	/** Duration to show debug lines (seconds, -1 for persistent) */
+	UPROPERTY(EditAnywhere, Category="Debug", meta = (ClampMin = -1, ClampMax = 10))
+	float DebugLineDuration = 5.0f;
+
+	/** Thickness of debug lines */
+	UPROPERTY(EditAnywhere, Category="Debug", meta = (ClampMin = 1, ClampMax = 10))
+	float DebugLineThickness = 2.0f;
+
+	/** Previous location for trajectory drawing */
+	FVector PreviousLocation;
+
 public:	
 
 	/** Constructor */

@@ -137,6 +137,18 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Holster")
 	EHolsterType HolsterType = EHolsterType::Hip;
 
+	/** Enable debug visualization for weapon firing */
+	UPROPERTY(EditAnywhere, Category="Debug")
+	bool bShowDebugWeapon = false;
+
+	/** Duration to show debug lines (seconds, -1 for persistent) */
+	UPROPERTY(EditAnywhere, Category="Debug", meta = (ClampMin = -1, ClampMax = 10))
+	float DebugLineDuration = 2.0f;
+
+	/** Thickness of debug lines */
+	UPROPERTY(EditAnywhere, Category="Debug", meta = (ClampMin = 1, ClampMax = 10))
+	float DebugLineThickness = 2.0f;
+
 public:	
 
 	/** Constructor */
