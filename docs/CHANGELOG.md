@@ -84,6 +84,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-loading quest definitions for quest givers from a content folder
 - Organized Source folder structure (Core, QuestSystem, InventorySystem, InteractionSystem)
 
+### Removed (2026-01-14)
+- **Variant_Horror C++ code** - 8 files, migrated to Core
+- **Variant_Shooter C++ code** - 24 files, migrated to Core
+- **Total code removed** - 6408 lines
+- **FirstPersonMesh setup** - Disabled in favor of third-person only
+- **cplusCharacter, cplusGameMode, cplusPlayerController** - Replaced by Base classes
+- **FriendlyAICharacter, HostileAICharacter** - Consolidated into BaseAICharacter
+- **Old WeaponComponent** - Moved to WeaponSystem/Components/
+
 ### Fixed
 - **Quest Turn-In System** - Fixed GetCompletedQuests() to correctly identify completed quests
   - Changed from GetActiveQuests() filter to direct FindActiveQuest() state check

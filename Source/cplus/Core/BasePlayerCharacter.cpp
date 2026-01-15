@@ -78,6 +78,7 @@ ABasePlayerCharacter::ABasePlayerCharacter()
 	GetCharacterMovement()->AirControl = 0.5f;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 600.0f, 0.0f);
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
 
 	// Disable tick by default
 	PrimaryActorTick.bCanEverTick = false;
@@ -126,6 +127,7 @@ void ABasePlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: FireAction = %s"), FireAction ? *FireAction->GetName() : TEXT("NULL"));
 	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: SwitchWeaponAction = %s"), SwitchWeaponAction ? *SwitchWeaponAction->GetName() : TEXT("NULL"));
 	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: SprintAction = %s"), SprintAction ? *SprintAction->GetName() : TEXT("NULL"));
+	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: CrouchAction = %s"), CrouchAction ? *CrouchAction->GetName() : TEXT("NULL"));
 
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
@@ -188,7 +190,18 @@ void ABasePlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		if (SprintAction)
 		{
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ABasePlayerCharacter::DoStartSprint);
+			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoStartSprint);
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ABasePlayerCharacter::DoEndSprint);
+			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Canceled, this, &ABasePlayerCharacter::DoEndSprint);
+		}
+
+		// Crouching
+		if (CrouchAction)
+		{
+			EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &ABasePlayerCharacter::DoStartCrouch);
+			EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoStartCrouch);
+			EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Completed, this, &ABasePlayerCharacter::DoEndCrouch);
+			EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Canceled, this, &ABasePlayerCharacter::DoEndCrouch);
 		}
 
 		// Interaction
@@ -355,6 +368,30 @@ void ABasePlayerCharacter::DoEndSprint()
 	}
 }
 
+void ABasePlayerCharacter::DoStartCrouch()
+{
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoStartCrouch called"));
+
+	UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+	if (!MovementComponent)
+	{
+		return;
+	}
+
+	if (!MovementComponent->GetNavAgentPropertiesRef().bCanCrouch)
+	{
+		return;
+	}
+
+	Crouch();
+}
+
+void ABasePlayerCharacter::DoEndCrouch()
+{
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoEndCrouch called"));
+	UnCrouch();
+}
+
 void ABasePlayerCharacter::SprintFixedTick()
 {
 	// Are we out of recovery, still have stamina and are moving faster than our walk speed?
@@ -506,9 +543,22 @@ void ABasePlayerCharacter::OnWeaponActivated(ABaseWeapon* Weapon)
 	}
 
 	// Set the character mesh AnimInstance (third-person only)
-	if (GetMesh())
+	if (!GetMesh())
 	{
-		GetMesh()->SetAnimInstanceClass(Weapon->GetThirdPersonAnimInstanceClass());
+		return;
+	}
+
+	const TSubclassOf<UAnimInstance> WeaponAnimClass = Weapon->GetThirdPersonAnimInstanceClass();
+	if (WeaponAnimClass)
+	{
+		GetMesh()->SetAnimInstanceClass(WeaponAnimClass);
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Weapon [%s] has no ThirdPersonAnimInstanceClass - falling back"), *Weapon->GetName());
+	if (UnarmedAnimInstanceClass)
+	{
+		GetMesh()->SetAnimInstanceClass(UnarmedAnimInstanceClass);
 	}
 }
 

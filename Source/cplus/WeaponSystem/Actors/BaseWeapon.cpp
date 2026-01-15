@@ -40,12 +40,22 @@ void ABaseWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return;
+	}
+
 	// subscribe to the owner's destroyed delegate
-	GetOwner()->OnDestroyed.AddDynamic(this, &ABaseWeapon::OnOwnerDestroyed);
+	OwnerActor->OnDestroyed.AddDynamic(this, &ABaseWeapon::OnOwnerDestroyed);
 
 	// cast the weapon owner
-	WeaponOwner = Cast<IWeaponHolder>(GetOwner());
-	PawnOwner = Cast<APawn>(GetOwner());
+	WeaponOwner = Cast<IWeaponHolder>(OwnerActor);
+	PawnOwner = Cast<APawn>(OwnerActor);
+	if (!WeaponOwner)
+	{
+		return;
+	}
 
 	// fill the first ammo clip
 	CurrentBullets = MagazineSize;

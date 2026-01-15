@@ -119,6 +119,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* SprintAction;
 
+	/** Crouch input action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* CrouchAction;
+
 	/** Interact input action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* InteractAction;
@@ -296,6 +300,14 @@ protected:
 	/** Stops sprinting behavior */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoEndSprint();
+
+	/** Starts crouching behavior */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void DoStartCrouch();
+
+	/** Stops crouching behavior */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void DoEndCrouch();
 
 	/** Called while sprinting at a fixed time interval */
 	void SprintFixedTick();
