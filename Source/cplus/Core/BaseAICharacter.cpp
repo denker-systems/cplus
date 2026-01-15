@@ -3,6 +3,7 @@
 #include "QuestGiverComponent.h"
 #include "HealthComponent.h"
 #include "WeaponSystem/Components/WeaponComponent.h"
+#include "CombatSystem/Core/CombatComponent.h"
 #include "WeaponSystem/Actors/BaseWeapon.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -17,6 +18,7 @@ ABaseAICharacter::ABaseAICharacter()
 	// Create components
 	// HealthComponent - Add manually in Blueprint (Details panel issue with native component)
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
+	CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	QuestTarget = CreateDefaultSubobject<UQuestTargetComponent>(TEXT("QuestTarget"));
 	// QuestGiver component is created in derived classes (e.g., QuestGiverNPC) that need it
 	QuestGiver = nullptr;

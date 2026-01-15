@@ -4,6 +4,8 @@
 #include "InteractionComponent.h"
 #include "HealthComponent.h"
 #include "WeaponSystem/Components/WeaponComponent.h"
+#include "CombatSystem/Core/CombatComponent.h"
+#include "CombatSystem/Core/CombatTypes.h"
 #include "PlayerProgressionComponent.h"
 #include "UI/UIManager.h"
 #include "QuestSystem/UI/QuestUIManager.h"
@@ -69,6 +71,7 @@ ABasePlayerCharacter::ABasePlayerCharacter()
 	// HealthComponent - Add manually in Blueprint (Details panel issue with native component)
 	// UIManager - Add manually in Blueprint (Details panel issue with native component)
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
+	CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	ProgressionComponent = CreateDefaultSubobject<UPlayerProgressionComponent>(TEXT("ProgressionComponent"));
 
 	// Configure character movement
@@ -239,6 +242,18 @@ void ABasePlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		{
 			EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoToggleInventory);
 		}
+
+		// Combat - Light Attack
+		if (LightAttackAction)
+		{
+			EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoLightAttack);
+		}
+
+		// Combat - Heavy Attack
+		if (HeavyAttackAction)
+		{
+			EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoHeavyAttack);
+		}
 	}
 }
 
@@ -309,15 +324,30 @@ void ABasePlayerCharacter::DoStartFiring()
 {
 	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoStartFiring called"));
 	
-	if (WeaponComponent && !IsDead())
+	if (IsDead())
 	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: Fire blocked - IsDead=true"));
+		return;
+	}
+
+	// Smart routing: Check if we have a weapon equipped
+	bool bHasWeapon = WeaponComponent && WeaponComponent->GetCurrentWeapon() != nullptr;
+	
+	if (bHasWeapon)
+	{
+		// Armed: Fire weapon
 		WeaponComponent->StartFiring();
+		UE_LOG(LogTemp, Display, TEXT(">>> INPUT: Firing weapon"));
+	}
+	else if (CombatComponent)
+	{
+		// Unarmed: Melee attack
+		CombatComponent->StartAttack(EAttackType::Light);
+		UE_LOG(LogTemp, Display, TEXT(">>> INPUT: Unarmed melee attack"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: Fire blocked - WeaponComponent=%s, IsDead=%s"),
-			WeaponComponent ? TEXT("Valid") : TEXT("NULL"),
-			IsDead() ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: No weapon or combat component available"));
 	}
 }
 
@@ -325,7 +355,13 @@ void ABasePlayerCharacter::DoStopFiring()
 {
 	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoStopFiring called"));
 	
-	if (WeaponComponent && !IsDead())
+	if (IsDead())
+	{
+		return;
+	}
+
+	// Only stop firing if we have a weapon (melee attacks are one-shot)
+	if (WeaponComponent && WeaponComponent->GetCurrentWeapon() != nullptr)
 	{
 		WeaponComponent->StopFiring();
 	}
@@ -353,6 +389,22 @@ void ABasePlayerCharacter::DoReload()
 		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: Reload blocked - WeaponComponent=%s, IsDead=%s"),
 			WeaponComponent ? TEXT("Valid") : TEXT("NULL"),
 			IsDead() ? TEXT("true") : TEXT("false"));
+	}
+}
+
+void ABasePlayerCharacter::DoLightAttack()
+{
+	if (CombatComponent && !IsDead())
+	{
+		CombatComponent->StartAttack(EAttackType::Light);
+	}
+}
+
+void ABasePlayerCharacter::DoHeavyAttack()
+{
+	if (CombatComponent && !IsDead())
+	{
+		CombatComponent->StartAttack(EAttackType::Heavy);
 	}
 }
 

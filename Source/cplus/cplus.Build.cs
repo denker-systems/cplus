@@ -53,6 +53,10 @@ public class cplus : ModuleRules
 			"cplus/WeaponSystem/Actors",
 			"cplus/WeaponSystem/Components",
 			"cplus/WeaponSystem/Data",
+			"cplus/CombatSystem",
+			"cplus/CombatSystem/Core",
+			"cplus/CombatSystem/Animation",
+			"cplus/CombatSystem/Interfaces",
 			"cplus/SaveSystem"
 		});
 

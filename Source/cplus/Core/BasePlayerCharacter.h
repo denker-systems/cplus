@@ -15,6 +15,7 @@ class UHealthComponent;
 class UWeaponComponent;
 class UPlayerProgressionComponent;
 class UUIManager;
+class UCombatComponent;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSprintStateChanged, bool, bSprinting);
@@ -81,6 +82,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UWeaponComponent* WeaponComponent;
 
+	/** Combat component for melee combat */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UCombatComponent* CombatComponent;
+
 	/** Player progression component (XP, Level, Gold) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UPlayerProgressionComponent* ProgressionComponent;
@@ -143,6 +148,14 @@ protected:
 	/** Reload weapon input action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* ReloadAction;
+
+	/** Light attack input action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* LightAttackAction;
+
+	/** Heavy attack input action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* HeavyAttackAction;
 
 	// === ANIMATION ===
 
@@ -291,6 +304,14 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoReload();
 
+	/** Handles light attack input */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void DoLightAttack();
+
+	/** Handles heavy attack input */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void DoHeavyAttack();
+
 	/** Starts sprinting behavior */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoStartSprint();
@@ -402,6 +423,10 @@ public:
 	/** Get weapon component */
 	UFUNCTION(BlueprintPure, Category = "Player")
 	UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+
+	/** Get combat component */
+	UFUNCTION(BlueprintPure, Category = "Player")
+	UCombatComponent* GetCombatComponent() const { return CombatComponent; }
 
 	/** Get progression component */
 	UFUNCTION(BlueprintPure, Category = "Player")

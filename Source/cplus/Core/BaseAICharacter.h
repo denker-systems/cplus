@@ -9,6 +9,7 @@
 
 class UHealthComponent;
 class UWeaponComponent;
+class UCombatComponent;
 class ABaseWeapon;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAIPawnDeath);
@@ -56,6 +57,10 @@ protected:
 	/** Weapon component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UWeaponComponent* WeaponComponent;
+
+	/** Combat component for melee combat */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UCombatComponent* CombatComponent;
 
 	/** Quest target component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -200,6 +205,10 @@ public:
 	/** Get weapon component */
 	UFUNCTION(BlueprintPure, Category = "AI")
 	UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+
+	/** Get combat component */
+	UFUNCTION(BlueprintPure, Category = "AI")
+	UCombatComponent* GetCombatComponent() const { return CombatComponent; }
 
 	/** Handle incoming damage */
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, 
