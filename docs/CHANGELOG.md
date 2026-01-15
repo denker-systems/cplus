@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-01-14 Late Evening)
+- **Sprint input system** - Hold Shift to sprint (Started/Triggered/Completed/Canceled bindings)
+- **Crouch input system** - Hold Ctrl to crouch with DoStartCrouch/DoEndCrouch handlers
+- **animation_guide.md** - GASP (Game Animation Sample) integration roadmap
+- **IA_Sprint, IA_Crouch** - New input actions in Content/Input/Actions/
+
+### Fixed (2026-01-14 Late Evening)
+- **T-pose on weapon activation** - Added defensive fallback in OnWeaponActivated
+  - If weapon has no ThirdPersonAnimInstanceClass, falls back to UnarmedAnimInstanceClass
+  - Prevents T-pose when StartingWeaponClass is configured but lacks AnimBP
+- **BaseWeapon null owner crash** - Added defensive checks in BaseWeapon::BeginPlay
+
 ### Added (2026-01-14)
 - **WeaponSystem folder structure** - Organized weapon code into Actors/Components/Data
 - **BasePlayerAnimInstance** - C++ animation instance with Speed, Direction, bIsInAir, weapon states
