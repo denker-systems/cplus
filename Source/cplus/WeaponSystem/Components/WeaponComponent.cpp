@@ -1,6 +1,8 @@
 #include "WeaponSystem/Components/WeaponComponent.h"
 #include "WeaponSystem/Actors/BaseWeapon.h"
 #include "WeaponSystem/IWeaponHolder.h"
+#include "InventorySystem/InventoryComponent.h"
+#include "InventorySystem/ItemDefinition.h"
 #include "GameFramework/Character.h"
 #include "TimerManager.h"
 
@@ -16,13 +18,25 @@ void UWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Initialize ammo inventory
+	// Cache inventory component reference
+	CacheInventoryComponent();
+
+	// Initialize ammo inventory (fallback for AI without inventory)
 	InitializeAmmo();
 
 	// Spawn starting weapon if configured
 	if (StartingWeaponClass)
 	{
 		AddWeaponClass(StartingWeaponClass);
+	}
+}
+
+void UWeaponComponent::CacheInventoryComponent()
+{
+	AActor* Owner = GetOwner();
+	if (Owner)
+	{
+		InventoryComponent = Owner->FindComponentByClass<UInventoryComponent>();
 	}
 }
 
@@ -189,6 +203,27 @@ void UWeaponComponent::SwitchToPrevious()
 	}
 }
 
+void UWeaponComponent::RemoveCurrentWeapon()
+{
+	if (!CurrentWeapon)
+	{
+		return;
+	}
+
+	// Deactivate current weapon
+	ABaseWeapon* OldWeapon = CurrentWeapon;
+	CurrentWeapon->DeactivateWeapon();
+
+	// Clear current weapon
+	CurrentWeapon = nullptr;
+	CurrentSlotIndex = -1;
+
+	SetWeaponState(EWeaponState::Disabled);
+
+	// Broadcast weapon changed (nullptr = no weapon)
+	OnWeaponChanged.Broadcast(nullptr, OldWeapon);
+}
+
 void UWeaponComponent::StartFiring()
 {
 	if (!CurrentWeapon || WeaponState == EWeaponState::Reloading || WeaponState == EWeaponState::Disabled)
@@ -284,7 +319,7 @@ bool UWeaponComponent::CanReload() const
 	EAmmoType WeaponAmmoType = CurrentWeapon->GetAmmoType();
 	UE_LOG(LogTemp, Display, TEXT(">>> WEAPON: CanReload - AmmoType=%d"), (int32)WeaponAmmoType);
 	
-	if (WeaponAmmoType != EAmmoType::None && !HasAmmo(WeaponAmmoType))
+	if (WeaponAmmoType != EAmmoType::None && !HasReserveAmmo(WeaponAmmoType))
 	{
 		UE_LOG(LogTemp, Warning, TEXT(">>> WEAPON: CanReload - No reserve ammo"));
 		return false;
@@ -314,7 +349,7 @@ void UWeaponComponent::FinishReload()
 	int32 AmmoToAdd = NeededAmmo;
 	if (WeaponAmmoType != EAmmoType::None)
 	{
-		AmmoToAdd = ConsumeAmmo(WeaponAmmoType, NeededAmmo);
+		AmmoToAdd = ConsumeReserveAmmo(WeaponAmmoType, NeededAmmo);
 	}
 
 	// Add bullets to weapon magazine
@@ -449,4 +484,83 @@ int32 UWeaponComponent::FindAvailableSlot() const
 		}
 	}
 	return -1;
+}
+
+// === INVENTORY AMMO BRIDGE ===
+
+int32 UWeaponComponent::GetReserveAmmo(EAmmoType AmmoType) const
+{
+	if (AmmoType == EAmmoType::None)
+	{
+		return 999; // Infinite
+	}
+
+	// Try inventory first if enabled
+	if (bUseInventoryAmmo && IsValid(InventoryComponent))
+	{
+		const TObjectPtr<UItemDefinition>* AmmoItem = AmmoTypeToItem.Find(AmmoType);
+		if (AmmoItem && IsValid(*AmmoItem))
+		{
+			return InventoryComponent->GetItemQuantity(*AmmoItem);
+		}
+	}
+
+	// Fallback to internal storage
+	return GetAmmo(AmmoType);
+}
+
+void UWeaponComponent::AddReserveAmmo(EAmmoType AmmoType, int32 Amount)
+{
+	if (AmmoType == EAmmoType::None || Amount <= 0)
+	{
+		return;
+	}
+
+	// Try inventory first if enabled
+	if (bUseInventoryAmmo && IsValid(InventoryComponent))
+	{
+		const TObjectPtr<UItemDefinition>* AmmoItem = AmmoTypeToItem.Find(AmmoType);
+		if (AmmoItem && IsValid(*AmmoItem))
+		{
+			InventoryComponent->AddItem(*AmmoItem, Amount);
+			return;
+		}
+	}
+
+	// Fallback to internal storage
+	AddAmmo(AmmoType, Amount);
+}
+
+int32 UWeaponComponent::ConsumeReserveAmmo(EAmmoType AmmoType, int32 Amount)
+{
+	if (AmmoType == EAmmoType::None)
+	{
+		return Amount; // Infinite
+	}
+
+	// Try inventory first if enabled
+	if (bUseInventoryAmmo && IsValid(InventoryComponent))
+	{
+		const TObjectPtr<UItemDefinition>* AmmoItem = AmmoTypeToItem.Find(AmmoType);
+		if (AmmoItem && IsValid(*AmmoItem))
+		{
+			int32 Available = InventoryComponent->GetItemQuantity(*AmmoItem);
+			int32 ToConsume = FMath::Min(Available, Amount);
+			InventoryComponent->RemoveItem(*AmmoItem, ToConsume);
+			return ToConsume;
+		}
+	}
+
+	// Fallback to internal storage
+	return ConsumeAmmo(AmmoType, Amount);
+}
+
+bool UWeaponComponent::HasReserveAmmo(EAmmoType AmmoType) const
+{
+	if (AmmoType == EAmmoType::None)
+	{
+		return true; // Infinite
+	}
+
+	return GetReserveAmmo(AmmoType) > 0;
 }

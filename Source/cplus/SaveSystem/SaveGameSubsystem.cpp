@@ -302,23 +302,16 @@ void USaveGameSubsystem::CollectSaveData(UGameSaveData* SaveData)
 		}
 	}
 
-	// Save inventory
+	// Save inventory using GetSaveData()
 	if (Player && Player->GetInventory())
 	{
 		UInventoryComponent* Inventory = Player->GetInventory();
-		SaveData->InventoryItems.Empty();
+		SaveData->InventoryItems = Inventory->GetSaveData();
 
-		for (const FInventoryItem& Item : Inventory->Items)
+		// Save equipped weapon
+		if (Inventory->EquippedWeaponItem)
 		{
-			if (Item.ItemData)
-			{
-				FInventoryItemSaveData ItemSave;
-				ItemSave.ItemID = Item.ItemData->ItemID;
-				ItemSave.Quantity = Item.Quantity;
-				ItemSave.InstanceID = Item.InstanceID;
-
-				SaveData->InventoryItems.Add(ItemSave);
-			}
+			SaveData->WeaponState.EquippedSlotIndex = 0; // TODO: Get actual slot index
 		}
 
 		UE_LOG(LogTemp, Display, TEXT("Saved %d inventory item(s)"), SaveData->InventoryItems.Num());
@@ -394,7 +387,7 @@ void USaveGameSubsystem::ApplySaveData(UGameSaveData* SaveData)
 		}
 	}
 
-	// Restore inventory
+	// Restore inventory using LoadFromSaveData()
 	if (Player && Player->GetInventory())
 	{
 		UInventoryComponent* Inventory = Player->GetInventory();
@@ -402,9 +395,9 @@ void USaveGameSubsystem::ApplySaveData(UGameSaveData* SaveData)
 		
 		if (GameData)
 		{
+			// Use GameDataSubsystem to resolve item IDs to definitions
 			for (const FInventoryItemSaveData& ItemSave : SaveData->InventoryItems)
 			{
-				// Load item definition from GameDataSubsystem
 				UItemDefinition* ItemDef = GameData->GetItemByID(ItemSave.ItemID);
 				if (ItemDef)
 				{
@@ -416,6 +409,13 @@ void USaveGameSubsystem::ApplySaveData(UGameSaveData* SaveData)
 					UE_LOG(LogTemp, Warning, TEXT("Item definition not found: %s"), *ItemSave.ItemID.ToString());
 				}
 			}
+
+			// Restore equipped weapon state
+			if (SaveData->WeaponState.EquippedSlotIndex >= 0 && SaveData->InventoryItems.Num() > 0)
+			{
+				// TODO: Re-equip weapon based on saved state
+			}
+
 			UE_LOG(LogTemp, Display, TEXT("Restored %d inventory item(s)"), SaveData->InventoryItems.Num());
 		}
 		else

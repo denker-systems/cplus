@@ -24,7 +24,6 @@ ABaseWeapon::ABaseWeapon()
 	FirstPersonMesh->SetupAttachment(RootComponent);
 
 	FirstPersonMesh->SetCollisionProfileName(FName("NoCollision"));
-	FirstPersonMesh->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::FirstPerson);
 	FirstPersonMesh->bOnlyOwnerSee = true;
 
 	// create the third person mesh
@@ -32,7 +31,6 @@ ABaseWeapon::ABaseWeapon()
 	ThirdPersonMesh->SetupAttachment(RootComponent);
 
 	ThirdPersonMesh->SetCollisionProfileName(FName("NoCollision"));
-	ThirdPersonMesh->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::WorldSpaceRepresentation);
 	ThirdPersonMesh->bOwnerNoSee = true;
 }
 

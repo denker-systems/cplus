@@ -83,6 +83,28 @@ struct FPlayerProgressionSaveData
 };
 
 /**
+ * Weapon Save Data
+ * Stores equipped weapon state
+ */
+USTRUCT(BlueprintType)
+struct FWeaponSaveData
+{
+	GENERATED_BODY()
+
+	/** Equipped weapon slot index */
+	UPROPERTY()
+	int32 EquippedSlotIndex = -1;
+
+	/** Owned weapon class names (for respawning) */
+	UPROPERTY()
+	TArray<FString> OwnedWeaponClasses;
+
+	/** Magazine ammo for each owned weapon */
+	UPROPERTY()
+	TArray<int32> MagazineAmmo;
+};
+
+/**
  * Player State Save Data
  * Stores player location, rotation, health
  */
@@ -155,6 +177,10 @@ public:
 	/** Inventory items */
 	UPROPERTY()
 	TArray<FInventoryItemSaveData> InventoryItems;
+
+	/** Weapon state (equipped, owned weapons) */
+	UPROPERTY()
+	FWeaponSaveData WeaponState;
 
 	/** Player state (location, health) */
 	UPROPERTY()

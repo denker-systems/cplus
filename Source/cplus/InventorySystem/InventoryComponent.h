@@ -7,6 +7,9 @@
 #include "InventoryItem.h"
 #include "InventoryComponent.generated.h"
 
+class UWeaponComponent;
+struct FInventoryItemSaveData;
+
 // Delegates
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryChanged, UItemDefinition*, Item, int32, NewQuantity);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryFull, UItemDefinition*, AttemptedItem);
@@ -114,6 +117,36 @@ public:
 	TArray<FInventoryItem> GetItemsByTag(FGameplayTag Tag) const;
 
 	/**
+	 * Get all items of specific type
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")
+	TArray<FInventoryItem> GetItemsByType(EItemType ItemType) const;
+
+	/**
+	 * Get all items (copy of Items array)
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")
+	TArray<FInventoryItem> GetAllItems() const { return Items; }
+
+	/**
+	 * Get total unique item stacks
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")
+	int32 GetItemCount() const { return Items.Num(); }
+
+	/**
+	 * Check if inventory is empty
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")
+	bool IsEmpty() const { return Items.Num() == 0; }
+
+	/**
+	 * Check if inventory is full (max slots reached)
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")
+	bool IsFull() const { return Items.Num() >= MaxSlots; }
+
+	/**
 	 * Get current inventory weight
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Inventory")
@@ -144,6 +177,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool DropItem(UItemDefinition* ItemData, int32 Quantity = 1);
 
+	/**
+	 * Sell item from inventory (blocked for quest items)
+	 * @param ItemData The item to sell
+	 * @param Quantity How many to sell
+	 * @param OutValue Total sell value received
+	 * @return True if successfully sold
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool SellItem(UItemDefinition* ItemData, int32 Quantity, int32& OutValue);
+
+	/**
+	 * Destroy item from inventory (blocked for quest items)
+	 * @param ItemData The item to destroy
+	 * @param Quantity How many to destroy
+	 * @return True if successfully destroyed
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool DestroyItem(UItemDefinition* ItemData, int32 Quantity = 1);
+
 	// ===== API - SORTING =====
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -172,6 +224,54 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Quest")
 	bool ConsumeQuestItems(const TMap<FName, int32>& RequiredItems);
+
+	// ===== WEAPON INTEGRATION =====
+
+	/** Currently equipped weapon item (tracked in inventory) */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Weapon")
+	TObjectPtr<UItemDefinition> EquippedWeaponItem;
+
+	/**
+	 * Equip weapon item from inventory
+	 * @param WeaponItem The weapon item to equip
+	 * @return True if successfully equipped
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Weapon")
+	bool EquipWeaponItem(UItemDefinition* WeaponItem);
+
+	/**
+	 * Unequip current weapon
+	 * @return True if successfully unequipped
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Weapon")
+	bool UnequipWeaponItem();
+
+	/**
+	 * Check if a weapon is currently equipped
+	 */
+	UFUNCTION(BlueprintPure, Category = "Inventory|Weapon")
+	bool HasEquippedWeapon() const { return IsValid(EquippedWeaponItem); }
+
+	/**
+	 * Get the currently equipped weapon item
+	 */
+	UFUNCTION(BlueprintPure, Category = "Inventory|Weapon")
+	UItemDefinition* GetEquippedWeaponItem() const { return EquippedWeaponItem; }
+
+	// ===== SAVE/LOAD =====
+
+	/**
+	 * Get save data for all inventory items
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Save")
+	TArray<FInventoryItemSaveData> GetSaveData() const;
+
+	/**
+	 * Load inventory from save data
+	 * @param SaveData Array of saved inventory items
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Save")
+	void LoadFromSaveData(const TArray<FInventoryItemSaveData>& SaveData);
 
 protected:
 	virtual void BeginPlay() override;

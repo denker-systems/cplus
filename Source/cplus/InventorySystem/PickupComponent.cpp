@@ -46,11 +46,10 @@ bool UPickupComponent::PickupItem(AActor* Collector)
 		return false;
 	}
 
-	// Add to inventory
+	// Add to inventory (this also notifies quest system via UInventoryComponent::NotifyQuestSystem)
 	AddToInventory(Collector);
 
-	// Notify quest system
-	NotifyQuestSystem(Collector);
+	// NOTE: Quest notification removed here - handled by InventoryComponent::AddItem() to avoid double-notify
 
 	// Broadcast event
 	OnItemPickedUp.Broadcast(Collector, ItemData);

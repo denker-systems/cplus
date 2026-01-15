@@ -7,6 +7,8 @@
 
 class ABaseWeapon;
 class UWeaponDefinition;
+class UInventoryComponent;
+class UItemDefinition;
 
 // Delegates
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWeaponChanged, ABaseWeapon*, NewWeapon, ABaseWeapon*, OldWeapon);
@@ -96,6 +98,20 @@ protected:
 	/** Reload timer handle */
 	FTimerHandle ReloadTimerHandle;
 
+	// === INVENTORY INTEGRATION ===
+
+	/** Cached reference to owner's inventory component */
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Inventory")
+	TObjectPtr<UInventoryComponent> InventoryComponent;
+
+	/** Use inventory for ammo instead of internal storage */
+	UPROPERTY(EditAnywhere, Category = "Weapon|Config")
+	bool bUseInventoryAmmo = true;
+
+	/** Mapping from EAmmoType to ItemDefinition for inventory-based ammo */
+	UPROPERTY(EditAnywhere, Category = "Weapon|Config")
+	TMap<EAmmoType, TObjectPtr<UItemDefinition>> AmmoTypeToItem;
+
 	// === CONFIGURATION ===
 
 	/** Starting weapon to spawn on BeginPlay */
@@ -140,6 +156,10 @@ public:
 	/** Legacy support */
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void SwitchWeapon() { SwitchToNext(); }
+
+	/** Remove/unequip current weapon (holster) */
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void RemoveCurrentWeapon();
 
 	// === FIRING ===
 
@@ -216,6 +236,24 @@ public:
 	/** Update ammo display (legacy support) */
 	void UpdateAmmoDisplay(int32 CurrentAmmo, int32 MagazineSize);
 
+	// === INVENTORY AMMO BRIDGE ===
+
+	/** Get reserve ammo from inventory (if enabled) or internal storage */
+	UFUNCTION(BlueprintPure, Category = "Weapon|Ammo")
+	int32 GetReserveAmmo(EAmmoType AmmoType) const;
+
+	/** Add ammo to inventory (if enabled) or internal storage */
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Ammo")
+	void AddReserveAmmo(EAmmoType AmmoType, int32 Amount);
+
+	/** Consume ammo from inventory (if enabled) or internal storage */
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Ammo")
+	int32 ConsumeReserveAmmo(EAmmoType AmmoType, int32 Amount);
+
+	/** Check if has reserve ammo in inventory or internal storage */
+	UFUNCTION(BlueprintPure, Category = "Weapon|Ammo")
+	bool HasReserveAmmo(EAmmoType AmmoType) const;
+
 protected:
 	// === INTERNAL ===
 
@@ -223,4 +261,5 @@ protected:
 	void FinishReload();
 	void InitializeAmmo();
 	int32 FindAvailableSlot() const;
+	void CacheInventoryComponent();
 };

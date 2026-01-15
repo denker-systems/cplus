@@ -7,6 +7,8 @@
 #include "GameplayTagContainer.h"
 #include "ItemDefinition.generated.h"
 
+class ABaseWeapon;
+
 /**
  * Item Type Enumeration
  */
@@ -134,6 +136,12 @@ public:
 	/** Consume item on use? */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Usage", meta = (EditCondition = "bIsUsable"))
 	bool bConsumeOnUse = true;
+
+	// ===== WEAPON INTEGRATION =====
+	
+	/** Weapon class to spawn when equipping (only for ItemType::Weapon) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Weapon", meta = (EditCondition = "ItemType == EItemType::Weapon"))
+	TSubclassOf<class ABaseWeapon> WeaponClass;
 
 	// ===== VISUAL REPRESENTATION =====
 	
