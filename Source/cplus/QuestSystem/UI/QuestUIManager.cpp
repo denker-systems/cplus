@@ -3,6 +3,8 @@
 #include "QuestUIManager.h"
 #include "questNotificationWidget.h"
 #include "questJournalWidget.h"
+#include "QuestGiverWidget.h"
+#include "QuestCompletionWidget.h"
 #include "QuestSubSystem.h"
 #include "Core/BaseGameMode.h"
 #include "Blueprint/UserWidget.h"
@@ -386,4 +388,131 @@ void UQuestUIManager::ShowUI()
 	{
 		JournalWidget->SetVisibility(ESlateVisibility::Visible);
 	}
+}
+
+void UQuestUIManager::ShowQuestGiverDialog(UQuestDefinition* Quest, AActor* QuestGiver)
+{
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: ShowQuestGiverDialog called"));
+
+	if (!Quest || !QuestGiver)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI MANAGER: Cannot show dialog - Quest=%p, QuestGiver=%p"), Quest, QuestGiver);
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Quest=[%s], QuestGiver=[%s]"),
+		*Quest->QuestID.ToString(), *QuestGiver->GetName());
+
+	if (!QuestGiverWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI MANAGER: QuestGiverWidgetClass not set!"));
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI MANAGER: Set it in BP_BasePlayerCharacter -> UIManager -> Quest UI|Dialogs"));
+		return;
+	}
+
+	// Close existing dialog if any
+	CloseQuestDialog();
+
+	// Create widget
+	CurrentDialogWidget = CreateWidget<UQuestGiverWidget>(GetWorld(), QuestGiverWidgetClass);
+	if (!CurrentDialogWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI MANAGER: Failed to create QuestGiverWidget"));
+		return;
+	}
+
+	// Initialize widget
+	if (UQuestGiverWidget* QuestWidget = Cast<UQuestGiverWidget>(CurrentDialogWidget))
+	{
+		QuestWidget->InitializeWidget(Quest, QuestGiver);
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: QuestGiverWidget initialized"));
+	}
+
+	// Add to viewport
+	CurrentDialogWidget->AddToViewport(200);
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Dialog added to viewport"));
+
+	// Set input mode to UI
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+	{
+		FInputModeUIOnly InputMode;
+		InputMode.SetWidgetToFocus(CurrentDialogWidget->TakeWidget());
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = true;
+	}
+}
+
+void UQuestUIManager::ShowQuestCompletionDialog(UQuestDefinition* Quest, const FQuestReward& Rewards, AActor* QuestGiver)
+{
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: ShowQuestCompletionDialog called"));
+
+	if (!Quest || !QuestGiver)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI MANAGER: Cannot show completion dialog - Quest=%p, QuestGiver=%p"), Quest, QuestGiver);
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Quest=[%s], Rewards - XP:%d, Gold:%d"),
+		*Quest->QuestID.ToString(), Rewards.ExperiencePoints, Rewards.Gold);
+
+	if (!QuestCompletionWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI MANAGER: QuestCompletionWidgetClass not set!"));
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI MANAGER: Set it in BP_BasePlayerCharacter -> UIManager -> Quest UI|Dialogs"));
+		return;
+	}
+
+	// Close existing dialog if any
+	CloseQuestDialog();
+
+	// Create widget
+	CurrentDialogWidget = CreateWidget<UQuestCompletionWidget>(GetWorld(), QuestCompletionWidgetClass);
+	if (!CurrentDialogWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI MANAGER: Failed to create QuestCompletionWidget"));
+		return;
+	}
+
+	// Initialize widget
+	if (UQuestCompletionWidget* CompletionWidget = Cast<UQuestCompletionWidget>(CurrentDialogWidget))
+	{
+		CompletionWidget->InitializeWidget(Quest, Rewards, QuestGiver);
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: QuestCompletionWidget initialized"));
+	}
+
+	// Add to viewport
+	CurrentDialogWidget->AddToViewport(200);
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Completion dialog added to viewport"));
+
+	// Set input mode to UI
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+	{
+		FInputModeUIOnly InputMode;
+		InputMode.SetWidgetToFocus(CurrentDialogWidget->TakeWidget());
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = true;
+	}
+}
+
+void UQuestUIManager::CloseQuestDialog()
+{
+	if (CurrentDialogWidget)
+	{
+		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI MANAGER: Closing quest dialog"));
+		CurrentDialogWidget->RemoveFromParent();
+		CurrentDialogWidget = nullptr;
+
+		// Restore input mode to game
+		if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+		{
+			FInputModeGameOnly InputMode;
+			PC->SetInputMode(InputMode);
+			PC->bShowMouseCursor = false;
+		}
+	}
+}
+
+bool UQuestUIManager::IsQuestDialogOpen() const
+{
+	return CurrentDialogWidget && CurrentDialogWidget->IsInViewport();
 }

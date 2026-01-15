@@ -11,8 +11,6 @@
 #include "QuestInteractable.h"
 #include "QuestDefinition.h"
 #include "QuestGiverComponent.h"
-#include "QuestGiverWidget.h"
-#include "QuestSystem/UI/QuestCompletionWidget.h"
 #include "Animation/AnimInstance.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
@@ -220,6 +218,12 @@ void ABasePlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		if (PauseAction)
 		{
 			EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoPauseMenu);
+		}
+
+		// Inventory
+		if (InventoryAction)
+		{
+			EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoToggleInventory);
 		}
 	}
 }
@@ -681,12 +685,20 @@ void ABasePlayerCharacter::DoPauseMenu()
 	}
 }
 
+void ABasePlayerCharacter::DoToggleInventory()
+{
+	if (UIManager)
+	{
+		UIManager->ToggleInventory();
+	}
+}
+
 void ABasePlayerCharacter::DoInteract()
 {
-	// Don't interact if quest widget is open
-	if (CurrentQuestWidget && CurrentQuestWidget->IsInViewport())
+	// Don't interact if quest dialog is open
+	if (UIManager && UIManager->GetQuestUIManager() && UIManager->GetQuestUIManager()->IsQuestDialogOpen())
 	{
-		UE_LOG(LogTemp, Display, TEXT(">>> INTERACTION: Blocked - Quest widget is open"));
+		UE_LOG(LogTemp, Display, TEXT(">>> INTERACTION: Blocked - Quest dialog is open"));
 		return;
 	}
 
@@ -762,170 +774,28 @@ void ABasePlayerCharacter::HandleQuestTurnedIn(FName QuestID, UQuestDefinition* 
 
 void ABasePlayerCharacter::ShowQuestDialog(UQuestDefinition* Quest, AActor* QuestGiver)
 {
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: ========== ShowQuestDialog START =========="));
-	
-	if (!Quest || !QuestGiver)
+	// Delegate to QuestUIManager
+	if (UIManager && UIManager->GetQuestUIManager())
 	{
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Cannot show dialog - Quest=%p, QuestGiver=%p"), Quest, QuestGiver);
-		return;
-	}
-
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Quest=[%s], QuestGiver=[%s]"), 
-		*Quest->QuestID.ToString(), *QuestGiver->GetName());
-
-	if (!QuestGiverWidgetClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: QuestGiverWidgetClass not set in Blueprint!"));
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Open BP_BasePlayerCharacter -> Class Defaults -> Quest|UI -> Set Quest Giver Widget Class"));
-		return;
-	}
-
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: QuestGiverWidgetClass is set: %s"), 
-		*QuestGiverWidgetClass->GetName());
-
-	// Close existing widget if any
-	if (CurrentQuestWidget)
-	{
-		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Closing existing widget"));
-		CurrentQuestWidget->RemoveFromParent();
-		CurrentQuestWidget = nullptr;
-	}
-
-	// Create widget (as UUserWidget)
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Creating widget from class..."));
-	CurrentQuestWidget = CreateWidget<UUserWidget>(GetWorld(), QuestGiverWidgetClass);
-	if (!CurrentQuestWidget)
-	{
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Failed to create widget - CreateWidget returned null"));
-		return;
-	}
-
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Widget created successfully: %s"), 
-		*CurrentQuestWidget->GetClass()->GetName());
-
-	// Cast to QuestGiverWidget to initialize
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Casting to QuestGiverWidget..."));
-	UQuestGiverWidget* QuestWidget = Cast<UQuestGiverWidget>(CurrentQuestWidget);
-	if (QuestWidget)
-	{
-		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Cast successful! Initializing widget..."));
-		// Initialize widget with quest data
-		QuestWidget->InitializeWidget(Quest, QuestGiver);
-		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Widget initialized"));
+		UIManager->GetQuestUIManager()->ShowQuestGiverDialog(Quest, QuestGiver);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Cast failed! Widget is not a QuestGiverWidget!"));
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Widget class: %s"), *CurrentQuestWidget->GetClass()->GetName());
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: Make sure WBP_QuestGiverDialog has QuestGiverWidget as parent class"));
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: File -> Reparent Blueprint -> QuestGiverWidget"));
-		CurrentQuestWidget->RemoveFromParent();
-		CurrentQuestWidget = nullptr;
-		return;
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST UI: UIManager or QuestUIManager is null"));
 	}
-
-	// Add to viewport
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Adding widget to viewport..."));
-	CurrentQuestWidget->AddToViewport(100); // High Z-order to be on top
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Widget added to viewport"));
-
-	// Set input mode to UI
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Setting input mode to UI..."));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		FInputModeUIOnly InputMode;
-		InputMode.SetWidgetToFocus(CurrentQuestWidget->TakeWidget());
-		PC->SetInputMode(InputMode);
-		PC->bShowMouseCursor = true;
-		UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: Input mode set, mouse cursor shown"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT(">>> QUEST UI: Could not get PlayerController"));
-	}
-
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST UI: ========== ShowQuestDialog SUCCESS =========="));
 }
 
 void ABasePlayerCharacter::ShowQuestCompletionDialog(UQuestDefinition* Quest, const FQuestReward& Rewards, AActor* QuestGiver)
 {
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: ========== ShowQuestCompletionDialog START =========="));
-	
-	if (!Quest || !QuestGiver)
+	// Delegate to QuestUIManager
+	if (UIManager && UIManager->GetQuestUIManager())
 	{
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: Cannot show dialog - Quest=%p, QuestGiver=%p"), Quest, QuestGiver);
-		return;
-	}
-
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Quest=[%s], QuestGiver=[%s]"), 
-		*Quest->QuestID.ToString(), *QuestGiver->GetName());
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Rewards - XP:%d, Gold:%d"), 
-		Rewards.ExperiencePoints, Rewards.Gold);
-
-	if (!QuestCompletionWidgetClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: QuestCompletionWidgetClass not set in Blueprint!"));
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: Open BP_BasePlayerCharacter -> Class Defaults -> Quest|UI -> Set Quest Completion Widget Class"));
-		return;
-	}
-
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: QuestCompletionWidgetClass is set: %s"), 
-		*QuestCompletionWidgetClass->GetName());
-
-	// Close existing widget if any
-	if (CurrentQuestWidget)
-	{
-		UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Closing existing widget"));
-		CurrentQuestWidget->RemoveFromParent();
-		CurrentQuestWidget = nullptr;
-	}
-
-	// Create widget
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Creating widget from class..."));
-	CurrentQuestWidget = CreateWidget<UUserWidget>(GetWorld(), QuestCompletionWidgetClass);
-	if (!CurrentQuestWidget)
-	{
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: Failed to create widget - CreateWidget returned null"));
-		return;
-	}
-
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Widget created successfully: %s"), 
-		*CurrentQuestWidget->GetClass()->GetName());
-
-	// Cast to QuestCompletionWidget and initialize
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Casting to QuestCompletionWidget..."));
-	if (UQuestCompletionWidget* CompletionWidget = Cast<UQuestCompletionWidget>(CurrentQuestWidget))
-	{
-		UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Cast successful! Initializing widget..."));
-		CompletionWidget->InitializeWidget(Quest, Rewards, QuestGiver);
-		UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Widget initialized"));
+		UIManager->GetQuestUIManager()->ShowQuestCompletionDialog(Quest, Rewards, QuestGiver);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: Cast failed! Widget is not a QuestCompletionWidget!"));
-		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: Make sure WBP_QuestCompletionDialog has QuestCompletionWidget as parent class"));
-		CurrentQuestWidget->RemoveFromParent();
-		CurrentQuestWidget = nullptr;
-		return;
+		UE_LOG(LogTemp, Error, TEXT(">>> QUEST COMPLETION UI: UIManager or QuestUIManager is null"));
 	}
-
-	// Add to viewport
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Adding widget to viewport..."));
-	CurrentQuestWidget->AddToViewport(100);
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Widget added to viewport"));
-
-	// Set input mode to UI
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Setting input mode to UI..."));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		FInputModeUIOnly InputMode;
-		InputMode.SetWidgetToFocus(CurrentQuestWidget->TakeWidget());
-		PC->SetInputMode(InputMode);
-		PC->bShowMouseCursor = true;
-		UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: Input mode set, mouse cursor shown"));
-	}
-
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST COMPLETION UI: ========== ShowQuestCompletionDialog SUCCESS =========="));
 }
 
 float ABasePlayerCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

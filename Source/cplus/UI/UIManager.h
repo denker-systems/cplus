@@ -8,6 +8,8 @@
 
 class UPauseMenuWidget;
 class UQuestUIManager;
+class UInventoryWidget;
+class UInventoryComponent;
 
 /**
  * UI Manager
@@ -31,11 +33,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI Manager")
 	TSubclassOf<UPauseMenuWidget> PauseMenuWidgetClass;
 
+	// ===== QUEST UI WIDGET CLASSES (passed to QuestUIManager) =====
+
+	/** Widget class for quest notifications */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI Manager|Quest UI")
+	TSubclassOf<class UQuestNotificationWidget> NotificationWidgetClass;
+
+	/** Widget class for quest journal */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI Manager|Quest UI")
+	TSubclassOf<class UQuestJournalWidget> JournalWidgetClass;
+
+	/** Widget class for quest giver dialog */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI Manager|Quest UI|Dialogs")
+	TSubclassOf<class UQuestGiverWidget> QuestGiverWidgetClass;
+
+	/** Widget class for quest completion dialog */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI Manager|Quest UI|Dialogs")
+	TSubclassOf<class UQuestCompletionWidget> QuestCompletionWidgetClass;
+
+	/** Widget class for inventory */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI Manager|Inventory")
+	TSubclassOf<UInventoryWidget> InventoryWidgetClass;
+
 	// ===== SUB-MANAGERS =====
 	
-	/** Quest UI manager (handles quest notifications and journal) */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI Manager")
-	UQuestUIManager* QuestUIManager;
+	/** Quest UI manager (handles quest notifications and journal) - created at runtime */
+	UPROPERTY(BlueprintReadOnly, Category = "UI Manager")
+	TObjectPtr<UQuestUIManager> QuestUIManager;
 
 	// ===== API - PAUSE MENU =====
 	
@@ -71,6 +95,32 @@ public:
 	UFUNCTION(BlueprintPure, Category = "UI Manager")
 	UQuestUIManager* GetQuestUIManager() const { return QuestUIManager; }
 
+	// ===== API - INVENTORY =====
+
+	/**
+	 * Toggle inventory (open/close)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "UI Manager")
+	void ToggleInventory();
+
+	/**
+	 * Show inventory
+	 */
+	UFUNCTION(BlueprintCallable, Category = "UI Manager")
+	void ShowInventory();
+
+	/**
+	 * Hide inventory
+	 */
+	UFUNCTION(BlueprintCallable, Category = "UI Manager")
+	void HideInventory();
+
+	/**
+	 * Is inventory visible?
+	 */
+	UFUNCTION(BlueprintPure, Category = "UI Manager")
+	bool IsInventoryVisible() const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
@@ -82,4 +132,8 @@ private:
 	/** Pause menu widget instance */
 	UPROPERTY()
 	TObjectPtr<UPauseMenuWidget> PauseMenuWidget;
+
+	/** Inventory widget instance */
+	UPROPERTY()
+	TObjectPtr<UInventoryWidget> InventoryWidget;
 };

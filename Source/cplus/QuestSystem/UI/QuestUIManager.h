@@ -11,6 +11,9 @@
 class UQuestNotificationWidget;
 class UQuestJournalWidget;
 class UQuestSubSystem;
+class UQuestGiverWidget;
+class UQuestCompletionWidget;
+struct FQuestReward;
 
 /**
  * Quest UI Manager
@@ -40,6 +43,14 @@ public:
 	/** Widget class for quest journal */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest UI")
 	TSubclassOf<UQuestJournalWidget> JournalWidgetClass;
+
+	/** Widget class for quest giver dialog */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest UI|Dialogs")
+	TSubclassOf<UQuestGiverWidget> QuestGiverWidgetClass;
+
+	/** Widget class for quest completion dialog */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest UI|Dialogs")
+	TSubclassOf<UQuestCompletionWidget> QuestCompletionWidgetClass;
 
 	// ===== SETTINGS =====
 	
@@ -120,6 +131,37 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest UI")
 	void ShowUI();
 
+	// ===== API - QUEST DIALOGS =====
+
+	/**
+	 * Show quest giver dialog
+	 * @param Quest The quest being offered
+	 * @param QuestGiver The NPC offering the quest
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Quest UI")
+	void ShowQuestGiverDialog(UQuestDefinition* Quest, AActor* QuestGiver);
+
+	/**
+	 * Show quest completion dialog
+	 * @param Quest The completed quest
+	 * @param Rewards The rewards earned
+	 * @param QuestGiver The NPC who gave the quest
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Quest UI")
+	void ShowQuestCompletionDialog(UQuestDefinition* Quest, const FQuestReward& Rewards, AActor* QuestGiver);
+
+	/**
+	 * Close any open quest dialog
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Quest UI")
+	void CloseQuestDialog();
+
+	/**
+	 * Is a quest dialog currently open?
+	 */
+	UFUNCTION(BlueprintPure, Category = "Quest UI")
+	bool IsQuestDialogOpen() const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
@@ -165,4 +207,8 @@ private:
 
 	/** Is journal currently open? */
 	bool bIsJournalOpen = false;
+
+	/** Current quest dialog widget instance */
+	UPROPERTY()
+	TObjectPtr<UUserWidget> CurrentDialogWidget;
 };

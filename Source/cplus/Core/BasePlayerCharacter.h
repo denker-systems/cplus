@@ -135,6 +135,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* PauseAction;
 
+	/** Toggle inventory input action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* InventoryAction;
+
 	/** Reload weapon input action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* ReloadAction;
@@ -159,21 +163,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Interaction|Debug")
 	bool bShowInteractionDebug = false;
 
-	// === QUEST DIALOG WIDGETS ===
-	// TODO: Refactor - Move these to QuestUIManager for better architecture
-	//       All quest UI should be managed by QuestUIManager, not directly on player
-
-	/** Widget class for quest dialog (Blueprint: WBP_QuestGiverDialog) */
-	UPROPERTY(EditAnywhere, Category = "UI Manager")
-	TSubclassOf<class UUserWidget> QuestGiverWidgetClass;
-
-	/** Widget class for quest completion dialog (Blueprint: WBP_QuestCompletionDialog) */
-	UPROPERTY(EditAnywhere, Category = "UI Manager")
-	TSubclassOf<class UUserWidget> QuestCompletionWidgetClass;
-
-	/** Current active quest dialog widget */
-	UPROPERTY()
-	TObjectPtr<class UUserWidget> CurrentQuestWidget;
 
 	// === SHOOTER FEATURES ===
 
@@ -329,6 +318,10 @@ protected:
 	/** Toggle pause menu */
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void DoPauseMenu();
+
+	/** Toggle inventory */
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void DoToggleInventory();
 
 	/** Blueprint event called when quest is offered to player */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Quest")

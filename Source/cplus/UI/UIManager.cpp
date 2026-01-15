@@ -3,15 +3,14 @@
 
 #include "UIManager.h"
 #include "PauseMenuWidget.h"
+#include "InventoryWidget.h"
 #include "QuestSystem/UI/QuestUIManager.h"
+#include "InventorySystem/InventoryComponent.h"
 #include "Blueprint/UserWidget.h"
 
 UUIManager::UUIManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-
-	// Create QuestUIManager as sub-component
-	QuestUIManager = CreateDefaultSubobject<UQuestUIManager>(TEXT("QuestUIManager"));
 }
 
 void UUIManager::BeginPlay()
@@ -20,8 +19,45 @@ void UUIManager::BeginPlay()
 
 	UE_LOG(LogTemp, Display, TEXT(">>> UI MANAGER: BeginPlay called"));
 
+	// Create QuestUIManager as a proper component on the owner actor
+	if (AActor* Owner = GetOwner())
+	{
+		QuestUIManager = NewObject<UQuestUIManager>(Owner, UQuestUIManager::StaticClass(), TEXT("QuestUIManager"));
+		if (QuestUIManager)
+		{
+			// Pass widget classes from UIManager to QuestUIManager
+			QuestUIManager->NotificationWidgetClass = NotificationWidgetClass;
+			QuestUIManager->JournalWidgetClass = JournalWidgetClass;
+			QuestUIManager->QuestGiverWidgetClass = QuestGiverWidgetClass;
+			QuestUIManager->QuestCompletionWidgetClass = QuestCompletionWidgetClass;
+			
+			QuestUIManager->RegisterComponent();
+			UE_LOG(LogTemp, Display, TEXT(">>> UI MANAGER: QuestUIManager created and registered"));
+		}
+	}
+
 	// Create pause menu widget
 	CreatePauseMenuWidget();
+
+	// Create inventory widget
+	if (InventoryWidgetClass)
+	{
+		InventoryWidget = CreateWidget<UInventoryWidget>(GetWorld(), InventoryWidgetClass);
+		if (InventoryWidget)
+		{
+			InventoryWidget->AddToViewport(50);
+			
+			// Find inventory component on owner and link it
+			if (AActor* Owner = GetOwner())
+			{
+				if (UInventoryComponent* Inventory = Owner->FindComponentByClass<UInventoryComponent>())
+				{
+					InventoryWidget->SetInventoryComponent(Inventory);
+				}
+			}
+			UE_LOG(LogTemp, Display, TEXT(">>> UI MANAGER: Inventory widget created"));
+		}
+	}
 
 	UE_LOG(LogTemp, Display, TEXT(">>> UI MANAGER: Initialization complete"));
 }
@@ -87,4 +123,33 @@ void UUIManager::HidePauseMenu()
 bool UUIManager::IsPauseMenuVisible() const
 {
 	return PauseMenuWidget && PauseMenuWidget->IsPauseMenuVisible();
+}
+
+void UUIManager::ToggleInventory()
+{
+	if (InventoryWidget)
+	{
+		InventoryWidget->ToggleInventory();
+	}
+}
+
+void UUIManager::ShowInventory()
+{
+	if (InventoryWidget)
+	{
+		InventoryWidget->ShowInventory();
+	}
+}
+
+void UUIManager::HideInventory()
+{
+	if (InventoryWidget)
+	{
+		InventoryWidget->HideInventory();
+	}
+}
+
+bool UUIManager::IsInventoryVisible() const
+{
+	return InventoryWidget && InventoryWidget->IsInventoryVisible();
 }
