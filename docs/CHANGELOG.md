@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-01-14)
+- **WeaponSystem folder structure** - Organized weapon code into Actors/Components/Data
+- **BasePlayerAnimInstance** - C++ animation instance with Speed, Direction, bIsInAir, weapon states
+- **ReloadAction input** - R key for weapon reload
+- **SpringArm + FollowCamera** - Third-person camera setup
+- **AnimBP switching system** - SetAnimInstanceClass() in OnWeaponActivated/Deactivated
+- **Core Redirects** - ShooterCharacter→BasePlayerCharacter, weapon class redirects
+
 ### Added
 - **Save/Load System** - Complete save game system with 3 save slots
   - **SaveGameData** - Data structures for quest/player/inventory/health saves
