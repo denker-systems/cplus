@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-01-15 Inventory Integration)
+- **EquipmentComponent** - Armor slot system (Head, Chest, Legs, Hands, Feet, Accessories)
+- **ShopComponent** - NPC trading system with buy/sell functionality and price modifiers
+- **CraftingComponent + CraftingRecipe** - Material-based crafting system
+- **Inventory UI helpers** - GetItemsByType, GetItemsByTag, IsEmpty, IsFull, GetItemCount
+- **DropItem spawning** - Spawns AWorldItem actors when dropping items
+- **Weapon equip/unequip tracking** - EquippedWeaponItem property in InventoryComponent
+- **UnequipWeaponItem** - Function to remove equipped weapon
+- **RemoveCurrentWeapon** - WeaponComponent function to holster weapon
+- **Ammo inventory bridge** - GetReserveAmmo, AddReserveAmmo, ConsumeReserveAmmo functions
+- **SaveGameSubsystem integration** - Uses GetSaveData/LoadFromSaveData for inventory persistence
+- **Roadmap documentation** - Complete roadmap-checklist.md with all integration phases
+
+### Changed (2026-01-15 UE 5.7 Upgrade)
+- **Target.cs files** - Upgraded to BuildSettingsVersion.V6 and EngineIncludeOrderVersion.Unreal5_7
+- **GameplayTags** - Updated tag hierarchy for items (Weapon, Ammo, Armor, Consumable, Craft, Quest)
+
+### Removed (2026-01-15 Cleanup)
+- **DR_Quests.uasset** - Unused DataRegistry causing initialization errors
+- **DT_Quests.uasset** - Invalid DataTable with missing RowStruct
+
 ### Added (2026-01-15 Quest System)
 - **QuestInteractableObject ItemID support** - Added ItemID property for Collect task compatibility
 - **QuestTriggerVolume LocationTag** - Added GameplayTag support for Location quest tasks
