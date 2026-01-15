@@ -85,9 +85,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UPlayerProgressionComponent* ProgressionComponent;
 
-	/** UI Manager (handles ALL UI: pause menu, quest UI, inventory, etc) */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UUIManager* UIManager;
+	/** UI Manager (handles ALL UI: pause menu, quest UI, inventory, etc)
+	 * NOTE: Add manually in Blueprint (like HealthComponent) for proper property editing */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI Manager")
+	TObjectPtr<UUIManager> UIManager;
 
 	// === INPUT ACTIONS ===
 

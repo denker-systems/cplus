@@ -67,9 +67,9 @@ ABasePlayerCharacter::ABasePlayerCharacter()
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	InteractionComponent = CreateDefaultSubobject<UInteractionComponent>(TEXT("InteractionComponent"));
 	// HealthComponent - Add manually in Blueprint (Details panel issue with native component)
+	// UIManager - Add manually in Blueprint (Details panel issue with native component)
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
 	ProgressionComponent = CreateDefaultSubobject<UPlayerProgressionComponent>(TEXT("ProgressionComponent"));
-	UIManager = CreateDefaultSubobject<UUIManager>(TEXT("UIManager"));
 
 	// Configure character movement
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
@@ -90,6 +90,20 @@ void ABasePlayerCharacter::BeginPlay()
 	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Location = %s"), *GetActorLocation().ToString());
 	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Camera = %s"), FollowCamera ? TEXT("Valid") : TEXT("NULL"));
 	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Mesh = %s"), GetMesh() ? TEXT("Valid") : TEXT("NULL"));
+
+	// Find UIManager component (added manually in Blueprint)
+	if (!UIManager)
+	{
+		UIManager = FindComponentByClass<UUIManager>();
+		if (UIManager)
+		{
+			UE_LOG(LogTemp, Display, TEXT(">>> UI MANAGER: Found UIManager component"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT(">>> UI MANAGER: UIManager component not found! Add it in Blueprint"));
+		}
+	}
 
 	// Bind to health component death event
 	if (HealthComponent)

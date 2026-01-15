@@ -19,7 +19,7 @@ class UInventoryComponent;
  * 
  * Attach to PlayerController or PlayerCharacter
  */
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent))
 class CPLUS_API UUIManager : public UActorComponent
 {
 	GENERATED_BODY()
