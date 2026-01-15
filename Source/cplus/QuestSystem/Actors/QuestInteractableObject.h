@@ -37,7 +37,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UTextRenderComponent* PromptText;
 
-	/** Tag identifying this interactable for quests */
+	/** Item ID for quest matching (used for Collect tasks) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FName ItemID;
+
+	/** Tag identifying this interactable for quests (used for Interact tasks) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
 	FGameplayTag InteractionTag;
 

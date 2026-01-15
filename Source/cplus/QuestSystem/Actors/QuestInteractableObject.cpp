@@ -41,8 +41,9 @@ void AQuestInteractableObject::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UE_LOG(LogTemp, Display, TEXT(">>> QUEST INTERACTABLE: Spawned [%s] with Tag=%s"), 
-		*GetName(), *InteractionTag.ToString());
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST INTERACTABLE: Spawned [%s]"), *GetName());
+	UE_LOG(LogTemp, Display, TEXT(">>> QUEST INTERACTABLE: ItemID=%s, Tag=%s"), 
+		*ItemID.ToString(), *InteractionTag.ToString());
 }
 
 bool AQuestInteractableObject::CanInteract_Implementation(AActor* Interactor) const
@@ -66,22 +67,21 @@ void AQuestInteractableObject::Interact_Implementation(AActor* Interactor)
 
 	bHasBeenInteracted = true;
 
-	// Notify QuestSubsystem
+	// Notify QuestSubsystem (same pattern as QuestCollectible)
 	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
 	if (GameInstance)
 	{
 		UQuestSubSystem* QuestSubsystem = GameInstance->GetSubsystem<UQuestSubSystem>();
 		if (QuestSubsystem)
 		{
-			// Build event tags
+			// Build event tags from InteractionTag
 			FGameplayTagContainer EventTags;
 			if (InteractionTag.IsValid())
 			{
 				EventTags.AddTag(InteractionTag);
 			}
 
-			// Notify quest system
-			UE_LOG(LogTemp, Display, TEXT(">>> QUEST INTERACTABLE: Notifying QuestSubsystem"));
+			UE_LOG(LogTemp, Display, TEXT(">>> QUEST INTERACTABLE: Notifying QuestSubsystem with %d tag(s)"), EventTags.Num());
 			QuestSubsystem->NotifyQuestEvent(NAME_None, EventTags, Interactor);
 		}
 	}

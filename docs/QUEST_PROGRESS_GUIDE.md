@@ -96,6 +96,58 @@ Widget automatically updates with:
 
 ## Task Types
 
+### Quest Task: Interact (or Collect)
+
+**Actor:** `AQuestInteractableObject`
+
+**Supports TWO quest task types:**
+- **Collect tasks:** Uses `ItemID` (no tag needed)
+- **Interact tasks:** Uses `InteractionTag`
+
+**Setup in Editor:**
+1. Drag `AQuestInteractableObject` into level
+2. **For Collect tasks:**
+   - Set `ItemID` = `Item.QuestItem` (or your item ID)
+   - Leave `InteractionTag` empty
+3. **For Interact tasks:**
+   - Set `InteractionTag` = `Quest.Interact.Lever` (must match quest definition)
+   - Leave `ItemID` empty
+4. Configure visual mesh in `MeshComponent`
+5. Adjust `InteractionSphere` radius (default: 200 units)
+6. Set `InteractionPrompt` text (default: "Press E to interact")
+7. Optional: Set `bCanInteractMultipleTimes` if reusable
+8. Optional: Add `InteractEffect` (particle system)
+9. Optional: Add `InteractSound` (sound effect)
+
+**Quest Definition Setup:**
+```
+Quest: "Exploration Time"
+└── Objective 1: "Interact with the quest object"
+    └── Task: Quest Task Interact
+        ├── Type: Interact
+        ├── Target Tag: Quest.Interact.Lever
+        ├── Required Count: 1
+        └── Description: "Interact with objects (0/1)"
+```
+
+**How It Works:**
+1. Player walks near object (within InteractionSphere)
+2. `BasePlayerCharacter` detects `IQuestInteractable` interface
+3. Player presses E to interact
+4. `AQuestInteractableObject::Interact_Implementation()` called
+5. `QuestTargetComponent->OnInteracted()` notifies quest system
+6. Quest progress updates automatically
+7. Visual/audio effects play (if configured)
+
+**Example Tags:**
+- `Quest.Interact.Lever` - Lever/switch
+- `Quest.Interact.Chest` - Chest/container
+- `Quest.Interact.Door` - Door/gate
+- `Quest.Interact.Terminal` - Computer/terminal
+- `Quest.Interact.Statue` - Statue/monument
+
+---
+
 ### All Task Types Support:
 
 | Task Type | Description | Example |

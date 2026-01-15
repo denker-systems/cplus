@@ -1,4 +1,5 @@
 #include "QuestTriggerVolume.h"
+#include "QuestSubSystem.h"
 #include "GameFramework/Character.h"
 
 AQuestTriggerVolume::AQuestTriggerVolume()
@@ -26,8 +27,27 @@ void AQuestTriggerVolume::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedC
 	{
 		if (Character->IsPlayerControlled())
 		{
-			UE_LOG(LogTemp, Log, TEXT("QuestTriggerVolume: Player entered trigger for quest %s, stage %s"), 
-				*AssociatedQuestID.ToString(), *TriggerStageID.ToString());
+			UE_LOG(LogTemp, Display, TEXT(">>> QUEST TRIGGER: Player entered location [%s] with Tag=%s"), 
+				*GetName(), *LocationTag.ToString());
+
+			// Notify QuestSubsystem (same pattern as QuestInteractableObject)
+			UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+			if (GameInstance)
+			{
+				UQuestSubSystem* QuestSubsystem = GameInstance->GetSubsystem<UQuestSubSystem>();
+				if (QuestSubsystem)
+				{
+					// Build event tags from LocationTag
+					FGameplayTagContainer EventTags;
+					if (LocationTag.IsValid())
+					{
+						EventTags.AddTag(LocationTag);
+					}
+
+					UE_LOG(LogTemp, Display, TEXT(">>> QUEST TRIGGER: Notifying QuestSubsystem with %d tag(s)"), EventTags.Num());
+					QuestSubsystem->NotifyQuestEvent(NAME_None, EventTags, OtherActor);
+				}
+			}
 
 			OnTriggerActivated.Broadcast(OtherActor);
 		}
