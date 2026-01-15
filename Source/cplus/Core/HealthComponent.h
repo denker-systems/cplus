@@ -1,3 +1,5 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -13,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeath, AActor*, Killer);
  * Manages health, damage, and death for any actor
  * Can be used by both players and AI
  */
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Custom), Blueprintable, BlueprintType, meta=(BlueprintSpawnableComponent))
 class CPLUS_API UHealthComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -29,13 +31,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Health")
 	FOnDeath OnDeath;
 
-protected:
-	virtual void BeginPlay() override;
-
 	/** Maximum health */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Health")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health", meta = (ClampMin = 1.0f))
 	float MaxHealth = 100.0f;
 
+	/** Can this actor take damage? */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+	bool bCanTakeDamage = true;
+
+protected:
 	/** Current health */
 	UPROPERTY(BlueprintReadOnly, Category = "Health")
 	float CurrentHealth = 0.0f;
@@ -44,9 +48,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Health")
 	bool bIsDead = false;
 
-	/** Can this actor take damage? */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
-	bool bCanTakeDamage = true;
+	virtual void BeginPlay() override;
 
 public:
 	/** Apply damage to this actor */
@@ -83,5 +85,5 @@ public:
 
 protected:
 	/** Called when health reaches zero */
-	virtual void Die(AActor* Killer);
+	void Die(AActor* Killer);
 };

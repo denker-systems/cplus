@@ -2,11 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "BaseCharacter.h"
-#include "ShooterWeaponHolder.h"
+#include "WeaponSystem/IWeaponHolder.h"
 #include "BasePlayerCharacter.generated.h"
 
 class USkeletalMeshComponent;
 class UCameraComponent;
+class USpringArmComponent;
 class USpotLightComponent;
 class UInputAction;
 class UPawnNoiseEmitterComponent;
@@ -29,19 +30,19 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSprintMeterUpdated, float, Percen
  * Features can be enabled/disabled via EditAnywhere properties
  */
 UCLASS(Abstract)
-class CPLUS_API ABasePlayerCharacter : public ABaseCharacter, public IShooterWeaponHolder
+class CPLUS_API ABasePlayerCharacter : public ABaseCharacter, public IWeaponHolder
 {
 	GENERATED_BODY()
 
-	// === FPS COMPONENTS ===
+protected:
 
-	/** First person mesh (arms; seen only by self) */
+	/** Spring arm for third-person camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	USkeletalMeshComponent* FirstPersonMesh;
+	USpringArmComponent* CameraBoom;
 
-	/** First person camera */
+	/** Third-person camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* FirstPersonCameraComponent;
+	UCameraComponent* FollowCamera;
 
 	/** Spotlight for horror mode */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -72,7 +73,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UInteractionComponent* InteractionComponent;
 
-	/** Health component */
+	/** Health component - ADD MANUALLY IN BLUEPRINT */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UHealthComponent* HealthComponent;
 
@@ -129,6 +130,16 @@ protected:
 	/** Pause menu input action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* PauseAction;
+
+	/** Reload weapon input action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* ReloadAction;
+
+	// === ANIMATION ===
+
+	/** Unarmed animation blueprint class (when no weapon equipped) */
+	UPROPERTY(EditAnywhere, Category = "Animation")
+	TSubclassOf<UAnimInstance> UnarmedAnimInstanceClass;
 
 	// === INTERACTION ===
 
@@ -274,6 +285,10 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoSwitchWeapon();
 
+	/** Handles reload input */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void DoReload();
+
 	/** Starts sprinting behavior */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoStartSprint();
@@ -339,16 +354,16 @@ protected:
 	void OnRespawn();
 
 public:
-	// === IShooterWeaponHolder INTERFACE ===
+	// === IWeaponHolder INTERFACE ===
 
-	virtual void AttachWeaponMeshes(class AShooterWeapon* Weapon) override;
+	virtual void AttachWeaponMeshes(class ABaseWeapon* Weapon) override;
 	virtual void PlayFiringMontage(UAnimMontage* Montage) override;
 	virtual void AddWeaponRecoil(float Recoil) override;
 	virtual void UpdateWeaponHUD(int32 CurrentAmmo, int32 MagazineSize) override;
 	virtual FVector GetWeaponTargetLocation() override;
-	virtual void AddWeaponClass(const TSubclassOf<class AShooterWeapon>& WeaponClass) override;
-	virtual void OnWeaponActivated(class AShooterWeapon* Weapon) override;
-	virtual void OnWeaponDeactivated(class AShooterWeapon* Weapon) override;
+	virtual void AddWeaponClass(const TSubclassOf<class ABaseWeapon>& WeaponClass) override;
+	virtual void OnWeaponActivated(class ABaseWeapon* Weapon) override;
+	virtual void OnWeaponDeactivated(class ABaseWeapon* Weapon) override;
 	virtual void OnSemiWeaponRefire() override;
 
 	// === GETTERS ===
@@ -381,13 +396,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player")
 	UUIManager* GetUIManager() const { return UIManager; }
 
-	/** Returns the first person mesh */
+	/** Returns the camera boom */
 	UFUNCTION(BlueprintPure, Category = "Player")
-	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
+	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
-	/** Returns first person camera component */
+	/** Returns follow camera component */
 	UFUNCTION(BlueprintPure, Category = "Player")
-	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+	UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 	/** Returns true if the character is dead */
 	UFUNCTION(BlueprintPure, Category = "Player")

@@ -1,17 +1,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "FriendlyAICharacter.h"
+#include "BaseAICharacter.h"
 #include "QuestGiverNPC.generated.h"
 
 /**
  * Quest Giver NPC
  * 
  * Specialized friendly NPC for quest giving
- * Inherits quest giver functionality from AFriendlyAICharacter
+ * Inherits from ABaseAICharacter with Team=Friendly
  */
 UCLASS()
-class CPLUS_API AQuestGiverNPC : public AFriendlyAICharacter
+class CPLUS_API AQuestGiverNPC : public ABaseAICharacter
 {
 	GENERATED_BODY()
 

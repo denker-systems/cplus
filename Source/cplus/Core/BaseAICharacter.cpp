@@ -2,8 +2,8 @@
 #include "QuestTargetComponent.h"
 #include "QuestGiverComponent.h"
 #include "HealthComponent.h"
-#include "WeaponComponent.h"
-#include "ShooterWeapon.h"
+#include "WeaponSystem/Components/WeaponComponent.h"
+#include "WeaponSystem/Actors/BaseWeapon.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
@@ -15,7 +15,7 @@
 ABaseAICharacter::ABaseAICharacter()
 {
 	// Create components
-	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	// HealthComponent - Add manually in Blueprint (Details panel issue with native component)
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
 	QuestTarget = CreateDefaultSubobject<UQuestTargetComponent>(TEXT("QuestTarget"));
 	// QuestGiver component is created in derived classes (e.g., QuestGiverNPC) that need it
@@ -175,9 +175,9 @@ void ABaseAICharacter::OnKilledForQuest_Implementation(AActor* Killer)
 	}
 }
 
-// === IShooterWeaponHolder INTERFACE ===
+// === IWeaponHolder INTERFACE ===
 
-void ABaseAICharacter::AttachWeaponMeshes(AShooterWeapon* Weapon)
+void ABaseAICharacter::AttachWeaponMeshes(ABaseWeapon* Weapon)
 {
 	if (!Weapon)
 	{
@@ -249,7 +249,7 @@ FVector ABaseAICharacter::GetWeaponTargetLocation()
 	return OutHit.bBlockingHit ? OutHit.ImpactPoint : OutHit.TraceEnd;
 }
 
-void ABaseAICharacter::AddWeaponClass(const TSubclassOf<AShooterWeapon>& WeaponClass)
+void ABaseAICharacter::AddWeaponClass(const TSubclassOf<ABaseWeapon>& WeaponClass)
 {
 	if (WeaponComponent)
 	{
@@ -257,12 +257,12 @@ void ABaseAICharacter::AddWeaponClass(const TSubclassOf<AShooterWeapon>& WeaponC
 	}
 }
 
-void ABaseAICharacter::OnWeaponActivated(AShooterWeapon* Weapon)
+void ABaseAICharacter::OnWeaponActivated(ABaseWeapon* Weapon)
 {
 	// Unused for AI
 }
 
-void ABaseAICharacter::OnWeaponDeactivated(AShooterWeapon* Weapon)
+void ABaseAICharacter::OnWeaponDeactivated(ABaseWeapon* Weapon)
 {
 	// Unused for AI
 }

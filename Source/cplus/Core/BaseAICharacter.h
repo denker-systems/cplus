@@ -4,12 +4,12 @@
 #include "BaseCharacter.h"
 #include "QuestInteractable.h"
 #include "QuestKillable.h"
-#include "ShooterWeaponHolder.h"
+#include "WeaponSystem/IWeaponHolder.h"
 #include "BaseAICharacter.generated.h"
 
 class UHealthComponent;
 class UWeaponComponent;
-class AShooterWeapon;
+class ABaseWeapon;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAIPawnDeath);
 
@@ -31,7 +31,7 @@ enum class EAITeam : uint8
  * Features can be enabled/disabled via EditAnywhere properties
  */
 UCLASS(Abstract)
-class CPLUS_API ABaseAICharacter : public ABaseCharacter, public IQuestInteractable, public IQuestKillable, public IShooterWeaponHolder
+class CPLUS_API ABaseAICharacter : public ABaseCharacter, public IQuestInteractable, public IQuestKillable, public IWeaponHolder
 {
 	GENERATED_BODY()
 
@@ -156,16 +156,16 @@ public:
 
 	virtual void OnKilledForQuest_Implementation(AActor* Killer) override;
 
-	// === IShooterWeaponHolder INTERFACE ===
+	// === IWeaponHolder INTERFACE ===
 
-	virtual void AttachWeaponMeshes(AShooterWeapon* Weapon) override;
+	virtual void AttachWeaponMeshes(ABaseWeapon* Weapon) override;
 	virtual void PlayFiringMontage(UAnimMontage* Montage) override;
 	virtual void AddWeaponRecoil(float Recoil) override;
 	virtual void UpdateWeaponHUD(int32 CurrentAmmo, int32 MagazineSize) override;
 	virtual FVector GetWeaponTargetLocation() override;
-	virtual void AddWeaponClass(const TSubclassOf<AShooterWeapon>& WeaponClass) override;
-	virtual void OnWeaponActivated(AShooterWeapon* Weapon) override;
-	virtual void OnWeaponDeactivated(AShooterWeapon* Weapon) override;
+	virtual void AddWeaponClass(const TSubclassOf<ABaseWeapon>& WeaponClass) override;
+	virtual void OnWeaponActivated(ABaseWeapon* Weapon) override;
+	virtual void OnWeaponDeactivated(ABaseWeapon* Weapon) override;
 	virtual void OnSemiWeaponRefire() override;
 
 	// === SHOOTING API ===

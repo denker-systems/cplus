@@ -49,12 +49,11 @@ public class cplus : ModuleRules
 			"cplus/InventorySystem",
 			"cplus/InteractionSystem",
 			"cplus/UI",
-			"cplus/Variant_Horror",
-			"cplus/Variant_Horror/UI",
-			"cplus/Variant_Shooter",
-			"cplus/Variant_Shooter/AI",
-			"cplus/Variant_Shooter/UI",
-			"cplus/Variant_Shooter/Weapons"
+			"cplus/WeaponSystem",
+			"cplus/WeaponSystem/Actors",
+			"cplus/WeaponSystem/Components",
+			"cplus/WeaponSystem/Data",
+			"cplus/SaveSystem"
 		});
 
 		// Uncomment if you are using Slate UI

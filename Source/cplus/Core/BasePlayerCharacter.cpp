@@ -3,11 +3,11 @@
 #include "InventoryComponent.h"
 #include "InteractionComponent.h"
 #include "HealthComponent.h"
-#include "WeaponComponent.h"
+#include "WeaponSystem/Components/WeaponComponent.h"
 #include "PlayerProgressionComponent.h"
 #include "UI/UIManager.h"
 #include "QuestSystem/UI/QuestUIManager.h"
-#include "ShooterWeapon.h"
+#include "WeaponSystem/Actors/BaseWeapon.h"
 #include "QuestInteractable.h"
 #include "QuestDefinition.h"
 #include "QuestGiverComponent.h"
@@ -16,6 +16,7 @@
 #include "Animation/AnimInstance.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SpotLightComponent.h"
@@ -34,24 +35,24 @@ ABasePlayerCharacter::ABasePlayerCharacter()
 	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
 	GetCapsuleComponent()->SetCapsuleSize(34.0f, 96.0f);
 
-	// Configure the character mesh
-	GetMesh()->SetOwnerNoSee(true);
+	// Configure the character mesh for third-person
+	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -90.0f), FQuat(FRotator(0.0f, -90.0f, 0.0f)));
+	GetMesh()->SetOwnerNoSee(false);
 
-	// Create the first person mesh that will be viewed only by this character's owner
-	FirstPersonMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
-	FirstPersonMesh->SetupAttachment(GetMesh());
-	FirstPersonMesh->SetOnlyOwnerSee(true);
-	FirstPersonMesh->SetCollisionProfileName(FName("NoCollision"));
+	// Create SpringArm for third-person camera
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	CameraBoom->SetupAttachment(RootComponent);
+	CameraBoom->TargetArmLength = 300.0f;
+	CameraBoom->bUsePawnControlRotation = true;
 
-	// Create the Camera Component
-	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-	FirstPersonCameraComponent->SetupAttachment(FirstPersonMesh, FName("head"));
-	FirstPersonCameraComponent->SetRelativeLocationAndRotation(FVector(-2.8f, 5.89f, 0.0f), FRotator(0.0f, 90.0f, -90.0f));
-	FirstPersonCameraComponent->bUsePawnControlRotation = true;
+	// Create follow camera
+	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+	FollowCamera->bUsePawnControlRotation = false;
 
 	// Create the spotlight for horror mode
 	SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("SpotLight"));
-	SpotLight->SetupAttachment(FirstPersonCameraComponent);
+	SpotLight->SetupAttachment(FollowCamera);
 	SpotLight->SetRelativeLocationAndRotation(FVector(30.0f, 17.5f, -5.0f), FRotator(-18.6f, -1.3f, 5.26f));
 	SpotLight->Intensity = 0.5;
 	SpotLight->SetIntensityUnits(ELightUnits::Lumens);
@@ -67,7 +68,7 @@ ABasePlayerCharacter::ABasePlayerCharacter()
 	QuestTracker = CreateDefaultSubobject<UQuestTrackerComponent>(TEXT("QuestTracker"));
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	InteractionComponent = CreateDefaultSubobject<UInteractionComponent>(TEXT("InteractionComponent"));
-	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	// HealthComponent - Add manually in Blueprint (Details panel issue with native component)
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
 	ProgressionComponent = CreateDefaultSubobject<UPlayerProgressionComponent>(TEXT("ProgressionComponent"));
 	UIManager = CreateDefaultSubobject<UUIManager>(TEXT("UIManager"));
@@ -88,8 +89,8 @@ void ABasePlayerCharacter::BeginPlay()
 
 	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: BeginPlay called for %s"), *GetName());
 	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Location = %s"), *GetActorLocation().ToString());
-	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Camera = %s"), FirstPersonCameraComponent ? TEXT("Valid") : TEXT("NULL"));
-	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Mesh = %s"), FirstPersonMesh ? TEXT("Valid") : TEXT("NULL"));
+	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Camera = %s"), FollowCamera ? TEXT("Valid") : TEXT("NULL"));
+	UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Mesh = %s"), GetMesh() ? TEXT("Valid") : TEXT("NULL"));
 
 	// Bind to health component death event
 	if (HealthComponent)
@@ -161,14 +162,26 @@ void ABasePlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		// Firing
 		if (FireAction)
 		{
-			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ABasePlayerCharacter::DoStartFiring);
+			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoStartFiring);
 			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ABasePlayerCharacter::DoStopFiring);
+			UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Fire input bound (Triggered)"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("BasePlayerCharacter: FireAction is NULL!"));
 		}
 
 		// Switch weapon
 		if (SwitchWeaponAction)
 		{
 			EnhancedInputComponent->BindAction(SwitchWeaponAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoSwitchWeapon);
+		}
+
+		// Reload
+		if (ReloadAction)
+		{
+			EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::DoReload);
+			UE_LOG(LogTemp, Warning, TEXT("BasePlayerCharacter: Reload input bound"));
 		}
 
 		// Sprinting
@@ -224,8 +237,6 @@ void ABasePlayerCharacter::DoAim(float Yaw, float Pitch)
 
 void ABasePlayerCharacter::DoMove(float Right, float Forward)
 {
-	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoMove called - Right=%.2f, Forward=%.2f"), Right, Forward);
-	
 	if (GetController() && !IsDead())
 	{
 		AddMovementInput(GetActorRightVector(), Right);
@@ -291,15 +302,24 @@ void ABasePlayerCharacter::DoStopFiring()
 
 void ABasePlayerCharacter::DoSwitchWeapon()
 {
-	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoSwitchWeapon called"));
-	
 	if (WeaponComponent && !IsDead())
 	{
 		WeaponComponent->SwitchWeapon();
 	}
+}
+
+void ABasePlayerCharacter::DoReload()
+{
+	UE_LOG(LogTemp, Display, TEXT(">>> INPUT: DoReload called"));
+	
+	if (WeaponComponent && !IsDead())
+	{
+		WeaponComponent->StartReload();
+		UE_LOG(LogTemp, Display, TEXT(">>> INPUT: StartReload executed"));
+	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: Switch weapon blocked - WeaponComponent=%s, IsDead=%s"),
+		UE_LOG(LogTemp, Warning, TEXT(">>> INPUT: Reload blocked - WeaponComponent=%s, IsDead=%s"),
 			WeaponComponent ? TEXT("Valid") : TEXT("NULL"),
 			IsDead() ? TEXT("true") : TEXT("false"));
 	}
@@ -411,9 +431,9 @@ void ABasePlayerCharacter::OnRespawn()
 	Destroy();
 }
 
-// === IShooterWeaponHolder INTERFACE ===
+// === IWeaponHolder INTERFACE ===
 
-void ABasePlayerCharacter::AttachWeaponMeshes(AShooterWeapon* Weapon)
+void ABasePlayerCharacter::AttachWeaponMeshes(ABaseWeapon* Weapon)
 {
 	if (!Weapon)
 	{
@@ -425,8 +445,7 @@ void ABasePlayerCharacter::AttachWeaponMeshes(AShooterWeapon* Weapon)
 	// Attach the weapon actor
 	Weapon->AttachToActor(this, AttachmentRule);
 
-	// Attach the weapon meshes
-	Weapon->GetFirstPersonMesh()->AttachToComponent(GetFirstPersonMesh(), AttachmentRule, FirstPersonWeaponSocket);
+	// Attach the weapon mesh (third-person only)
 	Weapon->GetThirdPersonMesh()->AttachToComponent(GetMesh(), AttachmentRule, ThirdPersonWeaponSocket);
 }
 
@@ -451,7 +470,7 @@ void ABasePlayerCharacter::UpdateWeaponHUD(int32 CurrentAmmo, int32 MagazineSize
 
 FVector ABasePlayerCharacter::GetWeaponTargetLocation()
 {
-	if (!FirstPersonCameraComponent)
+	if (!FollowCamera)
 	{
 		return GetActorLocation();
 	}
@@ -459,8 +478,8 @@ FVector ABasePlayerCharacter::GetWeaponTargetLocation()
 	// Trace ahead from the camera viewpoint
 	FHitResult OutHit;
 
-	const FVector Start = FirstPersonCameraComponent->GetComponentLocation();
-	const FVector End = Start + (FirstPersonCameraComponent->GetForwardVector() * MaxAimDistance);
+	const FVector Start = FollowCamera->GetComponentLocation();
+	const FVector End = Start + (FollowCamera->GetForwardVector() * MaxAimDistance);
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
@@ -471,7 +490,7 @@ FVector ABasePlayerCharacter::GetWeaponTargetLocation()
 	return OutHit.bBlockingHit ? OutHit.ImpactPoint : OutHit.TraceEnd;
 }
 
-void ABasePlayerCharacter::AddWeaponClass(const TSubclassOf<AShooterWeapon>& WeaponClass)
+void ABasePlayerCharacter::AddWeaponClass(const TSubclassOf<ABaseWeapon>& WeaponClass)
 {
 	if (WeaponComponent)
 	{
@@ -479,27 +498,27 @@ void ABasePlayerCharacter::AddWeaponClass(const TSubclassOf<AShooterWeapon>& Wea
 	}
 }
 
-void ABasePlayerCharacter::OnWeaponActivated(AShooterWeapon* Weapon)
+void ABasePlayerCharacter::OnWeaponActivated(ABaseWeapon* Weapon)
 {
 	if (!Weapon)
 	{
 		return;
 	}
 
-	// Set the character mesh AnimInstances
-	if (FirstPersonMesh)
-	{
-		FirstPersonMesh->SetAnimInstanceClass(Weapon->GetFirstPersonAnimInstanceClass());
-	}
+	// Set the character mesh AnimInstance (third-person only)
 	if (GetMesh())
 	{
 		GetMesh()->SetAnimInstanceClass(Weapon->GetThirdPersonAnimInstanceClass());
 	}
 }
 
-void ABasePlayerCharacter::OnWeaponDeactivated(AShooterWeapon* Weapon)
+void ABasePlayerCharacter::OnWeaponDeactivated(ABaseWeapon* Weapon)
 {
-	// Unused
+	// Reset to unarmed animation (third-person only)
+	if (UnarmedAnimInstanceClass && GetMesh())
+	{
+		GetMesh()->SetAnimInstanceClass(UnarmedAnimInstanceClass);
+	}
 }
 
 void ABasePlayerCharacter::OnSemiWeaponRefire()
@@ -518,13 +537,13 @@ bool ABasePlayerCharacter::IsDead() const
 
 void ABasePlayerCharacter::CheckForInteractable()
 {
-	if (!FirstPersonCameraComponent)
+	if (!FollowCamera)
 	{
 		return;
 	}
 
-	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
-	FVector End = Start + (FirstPersonCameraComponent->GetForwardVector() * InteractionDistance);
+	FVector Start = FollowCamera->GetComponentLocation();
+	FVector End = Start + (FollowCamera->GetForwardVector() * InteractionDistance);
 
 	FHitResult Hit;
 	FCollisionQueryParams QueryParams;
