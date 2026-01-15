@@ -270,6 +270,13 @@ bool UInventoryComponent::DropItem(UItemDefinition* ItemData, int32 Quantity)
 		return false;
 	}
 
+	// Unequip weapon if dropping the equipped weapon
+	if (ItemData->ItemType == EItemType::Weapon && EquippedWeaponItem == ItemData)
+	{
+		UnequipWeaponItem();
+		UE_LOG(LogTemp, Display, TEXT(">>> INVENTORY: Unequipped weapon before drop: %s"), *ItemData->ItemName.ToString());
+	}
+
 	// Get owner location for spawn
 	AActor* Owner = GetOwner();
 	if (!Owner)

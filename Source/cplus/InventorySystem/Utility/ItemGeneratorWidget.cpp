@@ -1,6 +1,7 @@
 #include "ItemGeneratorWidget.h"
 #include "WorldItem.h"
 #include "PickupComponent.h"
+#include "WeaponSystem/Actors/BaseWeapon.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "UObject/SavePackage.h"
 #include "Misc/Paths.h"
@@ -129,25 +130,23 @@ UItemDefinition* UItemGeneratorWidget::CreateItem(EItemType Type, int32 Index)
 		TypeName = TEXT("Weapon");
 		MaxStack = 1;
 		Weight = 5.0f;
-		switch (Index)
+		// Use WeaponClass name if available
+		if (WeaponClasses.IsValidIndex(Index - 1) && WeaponClasses[Index - 1])
 		{
-		case 1:
-			ItemName = TEXT("Iron Sword");
-			ItemDesc = TEXT("A basic iron sword.");
-			SellValue = 50;
-			Rarity = EItemRarity::Common;
-			break;
-		case 2:
-			ItemName = TEXT("Steel Blade");
-			ItemDesc = TEXT("A well-crafted steel blade.");
-			SellValue = 150;
-			Rarity = EItemRarity::Uncommon;
-			break;
-		default:
+			FString WeaponClassName = WeaponClasses[Index - 1]->GetName();
+			WeaponClassName.RemoveFromStart(TEXT("BP_"));
+			WeaponClassName.RemoveFromEnd(TEXT("_C"));
+			ItemName = WeaponClassName;
+			ItemDesc = FString::Printf(TEXT("A %s weapon."), *WeaponClassName);
+			SellValue = 100 * Index;
+			Rarity = Index == 1 ? EItemRarity::Common : EItemRarity::Uncommon;
+		}
+		else
+		{
 			ItemName = FString::Printf(TEXT("Weapon %d"), Index);
 			ItemDesc = TEXT("A weapon for combat.");
 			SellValue = Index * 50;
-			break;
+			Rarity = EItemRarity::Common;
 		}
 		break;
 
@@ -340,6 +339,17 @@ UItemDefinition* UItemGeneratorWidget::CreateItem(EItemType Type, int32 Index)
 	case EItemRarity::Legendary:
 		ItemDef->ItemTags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Item.Rarity.Legendary"))));
 		break;
+	}
+
+	// Set WeaponClass for weapon items
+	if (Type == EItemType::Weapon && WeaponClasses.IsValidIndex(Index - 1))
+	{
+		ItemDef->WeaponClass = WeaponClasses[Index - 1];
+		if (ItemDef->WeaponClass)
+		{
+			UE_LOG(LogTemp, Display, TEXT(">>> ITEM GENERATOR: Assigned WeaponClass %s to %s"), 
+				*ItemDef->WeaponClass->GetName(), *ItemName);
+		}
 	}
 
 	// Mark and save

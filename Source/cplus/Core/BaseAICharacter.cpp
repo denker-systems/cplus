@@ -193,6 +193,17 @@ void ABaseAICharacter::AttachWeaponMeshes(ABaseWeapon* Weapon)
 	Weapon->GetThirdPersonMesh()->AttachToComponent(GetMesh(), AttachmentRule, ThirdPersonWeaponSocket);
 }
 
+void ABaseAICharacter::HolsterWeapon(ABaseWeapon* Weapon)
+{
+	if (!Weapon)
+	{
+		return;
+	}
+
+	// AI just hides holstered weapons
+	Weapon->SetActorHiddenInGame(true);
+}
+
 void ABaseAICharacter::PlayFiringMontage(UAnimMontage* Montage)
 {
 	// Unused for AI

@@ -57,6 +57,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Generation|Types")
 	bool bGenerateMisc = true;
 
+	// ===== WEAPON CLASSES =====
+
+	/** Weapon classes to assign to generated weapon items (index matches weapon index) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Generation|Weapons")
+	TArray<TSubclassOf<class ABaseWeapon>> WeaponClasses;
+
 	// ===== BLUEPRINT GENERATION =====
 
 	/** Base WorldItem class to create children from */

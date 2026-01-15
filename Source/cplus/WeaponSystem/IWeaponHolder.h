@@ -28,8 +28,11 @@ class CPLUS_API IWeaponHolder
 
 public:
 
-	/** Attaches a weapon's meshes to the owner */
+	/** Attaches a weapon's meshes to the owner (equipped position) */
 	virtual void AttachWeaponMeshes(ABaseWeapon* Weapon) = 0;
+
+	/** Attaches a weapon to holster position */
+	virtual void HolsterWeapon(ABaseWeapon* Weapon) = 0;
 
 	/** Plays the firing montage for the weapon */
 	virtual void PlayFiringMontage(UAnimMontage* Montage) = 0;

@@ -175,6 +175,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Weapons")
 	FName ThirdPersonWeaponSocket = FName("HandGrip_R");
 
+	/** Hip holster socket (pistol, SMG) */
+	UPROPERTY(EditAnywhere, Category = "Weapons|Holster")
+	FName HolsterHipSocket = FName("Holster_Hip");
+
+	/** Back holster socket (rifle, shotgun) */
+	UPROPERTY(EditAnywhere, Category = "Weapons|Holster")
+	FName HolsterBackSocket = FName("Holster_Back");
+
 	/** Max distance to use for aim traces */
 	UPROPERTY(EditAnywhere, Category = "Aim", meta = (ClampMin = 0, ClampMax = 100000, Units = "cm"))
 	float MaxAimDistance = 10000.0f;
@@ -363,6 +371,7 @@ public:
 	// === IWeaponHolder INTERFACE ===
 
 	virtual void AttachWeaponMeshes(class ABaseWeapon* Weapon) override;
+	virtual void HolsterWeapon(class ABaseWeapon* Weapon) override;
 	virtual void PlayFiringMontage(UAnimMontage* Montage) override;
 	virtual void AddWeaponRecoil(float Recoil) override;
 	virtual void UpdateWeaponHUD(int32 CurrentAmmo, int32 MagazineSize) override;

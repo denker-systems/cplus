@@ -492,8 +492,11 @@ void ABasePlayerCharacter::AttachWeaponMeshes(ABaseWeapon* Weapon)
 {
 	if (!Weapon)
 	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> WEAPON ATTACH: Weapon is null!"));
 		return;
 	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> WEAPON ATTACH: Attaching %s to socket %s"), *Weapon->GetName(), *ThirdPersonWeaponSocket.ToString());
 
 	const FAttachmentTransformRules AttachmentRule(EAttachmentRule::SnapToTarget, false);
 
@@ -501,7 +504,75 @@ void ABasePlayerCharacter::AttachWeaponMeshes(ABaseWeapon* Weapon)
 	Weapon->AttachToActor(this, AttachmentRule);
 
 	// Attach the weapon mesh (third-person only)
-	Weapon->GetThirdPersonMesh()->AttachToComponent(GetMesh(), AttachmentRule, ThirdPersonWeaponSocket);
+	USkeletalMeshComponent* WeaponMesh = Weapon->GetThirdPersonMesh();
+	if (WeaponMesh)
+	{
+		WeaponMesh->AttachToComponent(GetMesh(), AttachmentRule, ThirdPersonWeaponSocket);
+		
+		// Debug mesh info
+		USkeletalMesh* MeshAsset = WeaponMesh->GetSkeletalMeshAsset();
+		bool bHasMesh = MeshAsset != nullptr;
+		bool bIsVisible = WeaponMesh->IsVisible();
+		bool bIsHidden = Weapon->IsHidden();
+		
+		UE_LOG(LogTemp, Display, TEXT(">>> WEAPON ATTACH: Success! Mesh attached to %s"), *ThirdPersonWeaponSocket.ToString());
+		UE_LOG(LogTemp, Display, TEXT(">>> WEAPON ATTACH: HasMeshAsset=%s, IsVisible=%s, IsActorHidden=%s"), 
+			bHasMesh ? TEXT("YES") : TEXT("NO"),
+			bIsVisible ? TEXT("YES") : TEXT("NO"),
+			bIsHidden ? TEXT("YES") : TEXT("NO"));
+		
+		if (!bHasMesh)
+		{
+			UE_LOG(LogTemp, Warning, TEXT(">>> WEAPON ATTACH: ThirdPersonMesh has NO SkeletalMesh asset set!"));
+		}
+		
+		// Check socket exists on character
+		bool bSocketExists = GetMesh()->DoesSocketExist(ThirdPersonWeaponSocket);
+		FVector SocketLocation = GetMesh()->GetSocketLocation(ThirdPersonWeaponSocket);
+		FVector WeaponLocation = WeaponMesh->GetComponentLocation();
+		
+		UE_LOG(LogTemp, Display, TEXT(">>> WEAPON ATTACH: Socket '%s' exists on character: %s"), 
+			*ThirdPersonWeaponSocket.ToString(), bSocketExists ? TEXT("YES") : TEXT("NO"));
+		UE_LOG(LogTemp, Display, TEXT(">>> WEAPON ATTACH: Socket location: %s"), *SocketLocation.ToString());
+		UE_LOG(LogTemp, Display, TEXT(">>> WEAPON ATTACH: Weapon location: %s"), *WeaponLocation.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> WEAPON ATTACH: ThirdPersonMesh component is null!"));
+	}
+}
+
+void ABasePlayerCharacter::HolsterWeapon(ABaseWeapon* Weapon)
+{
+	if (!Weapon)
+	{
+		return;
+	}
+
+	const FAttachmentTransformRules AttachmentRule(EAttachmentRule::SnapToTarget, false);
+
+	// Determine holster socket based on weapon type
+	FName HolsterSocket = NAME_None;
+	switch (Weapon->GetHolsterType())
+	{
+	case EHolsterType::Hip:
+		HolsterSocket = HolsterHipSocket;
+		break;
+	case EHolsterType::Back:
+		HolsterSocket = HolsterBackSocket;
+		break;
+	case EHolsterType::None:
+	default:
+		// Hide weapon instead of holstering
+		Weapon->SetActorHiddenInGame(true);
+		return;
+	}
+
+	// Attach weapon to holster socket
+	Weapon->GetThirdPersonMesh()->AttachToComponent(GetMesh(), AttachmentRule, HolsterSocket);
+	Weapon->SetActorHiddenInGame(false);
+	
+	UE_LOG(LogTemp, Display, TEXT(">>> HOLSTER: Weapon %s holstered to %s"), *Weapon->GetName(), *HolsterSocket.ToString());
 }
 
 void ABasePlayerCharacter::PlayFiringMontage(UAnimMontage* Montage)

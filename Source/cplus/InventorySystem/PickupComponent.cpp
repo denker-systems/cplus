@@ -4,6 +4,7 @@
 #include "InventoryComponent.h"
 #include "QuestTargetComponent.h"
 #include "QuestSubSystem.h"
+#include "WeaponSystem/Actors/BaseWeapon.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
 
@@ -113,6 +114,13 @@ void UPickupComponent::AddToInventory(AActor* Collector)
 	if (Inventory)
 	{
 		Inventory->AddItem(ItemData, ItemQuantity);
+
+		// Auto-equip weapons when picked up
+		if (ItemData->ItemType == EItemType::Weapon && ItemData->WeaponClass)
+		{
+			Inventory->EquipWeaponItem(ItemData);
+			UE_LOG(LogTemp, Display, TEXT(">>> PICKUP: Auto-equipped weapon %s"), *ItemData->ItemName.ToString());
+		}
 	}
 }
 

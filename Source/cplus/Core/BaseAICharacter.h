@@ -159,6 +159,7 @@ public:
 	// === IWeaponHolder INTERFACE ===
 
 	virtual void AttachWeaponMeshes(ABaseWeapon* Weapon) override;
+	virtual void HolsterWeapon(ABaseWeapon* Weapon) override;
 	virtual void PlayFiringMontage(UAnimMontage* Montage) override;
 	virtual void AddWeaponRecoil(float Recoil) override;
 	virtual void UpdateWeaponHUD(int32 CurrentAmmo, int32 MagazineSize) override;

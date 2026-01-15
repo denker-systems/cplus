@@ -63,15 +63,21 @@ void UWeaponComponent::InitializeAmmo()
 
 void UWeaponComponent::AddWeaponClass(const TSubclassOf<ABaseWeapon>& WeaponClass)
 {
+	UE_LOG(LogTemp, Display, TEXT(">>> WEAPON COMPONENT: AddWeaponClass called"));
+
 	if (!WeaponClass)
 	{
+		UE_LOG(LogTemp, Warning, TEXT(">>> WEAPON COMPONENT: WeaponClass is null!"));
 		return;
 	}
+
+	UE_LOG(LogTemp, Display, TEXT(">>> WEAPON COMPONENT: Adding weapon class %s"), *WeaponClass->GetName());
 
 	// Do we already own this weapon?
 	ABaseWeapon* OwnedWeapon = FindWeaponOfType(WeaponClass);
 	if (OwnedWeapon)
 	{
+		UE_LOG(LogTemp, Display, TEXT(">>> WEAPON COMPONENT: Already own this weapon type"));
 		return;
 	}
 
@@ -93,6 +99,8 @@ void UWeaponComponent::AddWeaponClass(const TSubclassOf<ABaseWeapon>& WeaponClas
 
 	if (AddedWeapon)
 	{
+		UE_LOG(LogTemp, Display, TEXT(">>> WEAPON COMPONENT: Weapon spawned: %s"), *AddedWeapon->GetName());
+
 		// Add the weapon to the owned list
 		OwnedWeapons.Add(AddedWeapon);
 
@@ -101,6 +109,7 @@ void UWeaponComponent::AddWeaponClass(const TSubclassOf<ABaseWeapon>& WeaponClas
 		if (SlotIndex >= 0 && SlotIndex < WeaponSlots.Num())
 		{
 			WeaponSlots[SlotIndex] = AddedWeapon;
+			UE_LOG(LogTemp, Display, TEXT(">>> WEAPON COMPONENT: Assigned to slot %d"), SlotIndex);
 		}
 
 		// If we have an existing weapon, deactivate it
@@ -115,10 +124,16 @@ void UWeaponComponent::AddWeaponClass(const TSubclassOf<ABaseWeapon>& WeaponClas
 		CurrentSlotIndex = SlotIndex;
 		CurrentWeapon->ActivateWeapon();
 
+		UE_LOG(LogTemp, Display, TEXT(">>> WEAPON COMPONENT: Weapon activated, HolsterType: %d"), (int32)AddedWeapon->GetHolsterType());
+
 		SetWeaponState(EWeaponState::Idle);
 
 		// Broadcast weapon changed
 		OnWeaponChanged.Broadcast(CurrentWeapon, OldWeapon);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT(">>> WEAPON COMPONENT: Failed to spawn weapon!"));
 	}
 }
 

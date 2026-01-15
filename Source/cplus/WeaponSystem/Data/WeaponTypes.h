@@ -63,3 +63,14 @@ enum class EWeaponFireMode : uint8
 	Burst		UMETA(DisplayName = "Burst Fire"),
 	Charge		UMETA(DisplayName = "Charge Shot")
 };
+
+/**
+ * Holster type determines where weapon is stored when not equipped
+ */
+UENUM(BlueprintType)
+enum class EHolsterType : uint8
+{
+	Hip			UMETA(DisplayName = "Hip (Pistol, SMG)"),
+	Back		UMETA(DisplayName = "Back (Rifle, Shotgun)"),
+	None		UMETA(DisplayName = "None (Hidden)")
+};

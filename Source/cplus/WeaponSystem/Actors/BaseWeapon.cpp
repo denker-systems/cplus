@@ -3,6 +3,7 @@
 
 #include "WeaponSystem/Actors/BaseWeapon.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "WeaponSystem/Actors/BaseProjectile.h"
 #include "WeaponSystem/IWeaponHolder.h"
@@ -31,7 +32,7 @@ ABaseWeapon::ABaseWeapon()
 	ThirdPersonMesh->SetupAttachment(RootComponent);
 
 	ThirdPersonMesh->SetCollisionProfileName(FName("NoCollision"));
-	ThirdPersonMesh->bOwnerNoSee = true;
+	// Third person only - owner can see this mesh too
 }
 
 void ABaseWeapon::BeginPlay()
@@ -142,6 +143,14 @@ void ABaseWeapon::Fire()
 	
 	// fire a projectile at the target
 	FireProjectile(WeaponOwner->GetWeaponTargetLocation());
+
+	// spawn muzzle flash effect
+	if (MuzzleFlashEffect)
+	{
+		FVector MuzzleLocation = ThirdPersonMesh->GetSocketLocation(MuzzleSocketName);
+		FRotator MuzzleRotation = ThirdPersonMesh->GetSocketRotation(MuzzleSocketName);
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFlashEffect, MuzzleLocation, MuzzleRotation, FVector(MuzzleFlashScale), true);
+	}
 
 	// update the time of our last shot
 	TimeOfLastShot = GetWorld()->GetTimeSeconds();
